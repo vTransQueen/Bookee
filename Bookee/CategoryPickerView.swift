@@ -2,154 +2,46 @@
 //  CategoryPickerView.swift
 //  Bookee
 //
-//  Modal picker for selecting or creating transaction categories.
+//  Genre picker for selecting and managing genres on a book.
 //
 
 import SwiftUI
 import SwiftData
 
-// MARK: - Hidden Categories Page
-
-struct HiddenCategoriesPage: View {
-    @Binding var localHiddenCategories: [String]
-    @Bindable var item: Item
-    let month: Int
-    let year: Int
-    @AppStorage("transactionCategories") private var storedCategories: String = "[]"
-    @AppStorage("showFooters") private var showFooters: Bool = true
-    @HighlightColorStorage private var highlightColor
-
-    private var hiddenInThisBudget: [String] {
-        let all = Set(storedCategories.asCategories)
-        return localHiddenCategories.filter { all.contains($0) }
-    }
-
-    private var categoryCounts: [String: Int] {
-        buildCategoryCounts(for: item, month: month, year: year)
-    }
-
-    var body: some View {
-        ZStack {
-            List {
-                Section {
-                    ForEach(hiddenInThisBudget, id: \.self) { category in
-                        HStack {
-                            Text(category)
-                            Text("\(categoryCounts[category, default: 0])")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                        }
-                        .swipeActions(edge: .leading) {
-                            Button {
-                                unhideCategory(category)
-                            } label: {
-                                Image(systemName: "eye")
-                            }
-                            .tint(.blue)
-                        }
-                        .contextMenu {
-                            Button {
-                                unhideCategory(category)
-                            } label: {
-                                Label("Unhide", systemImage: "eye")
-                            }
-                        }
-                    }
-                } header: {
-                    if !hiddenInThisBudget.isEmpty {
-                        Text("Categories")
-                    }
-                } footer: {
-                    if showFooters && !hiddenInThisBudget.isEmpty {
-                        Text("Swipe right on a category to unhide it.")
-                    }
-                }
-            }
-
-            if hiddenInThisBudget.isEmpty {
-                EmptyStatePlaceholder(
-                    systemImage: "eye.slash",
-                    title: "No Hidden Categories",
-                    message: "Categories you hide will appear here."
-                )
-            }
-        }
-        .navigationTitle("Hidden")
-        .navigationBarTitleDisplayMode(.inline)
-        .tint(.primary)
-    }
-
-    private func unhideCategory(_ category: String) {
-        localHiddenCategories.removeAll { $0 == category }
-        item.hiddenFilterCategories = localHiddenCategories.asAppStorageString
-        try? item.modelContext?.save()
-    }
-}
-
-// MARK: - Category Picker View
+// MARK: - Genre Picker View
 
 struct CategoryPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Binding var selectedCategories: Set<String>
-    @Bindable var item: Item
-    let month: Int
-    let year: Int
-    @AppStorage("transactionCategories") private var storedCategories: String = "[]"
+    @Binding var selectedGenres: Set<String>
+    @AppStorage("genres") private var storedGenres: String = "[]"
     @HighlightColorStorage private var highlightColor
     @AppStorage("showFooters") private var showFooters: Bool = true
-    @State private var newCategoryName: String = ""
+
+    @State private var newGenreName: String = ""
     @State private var showingAddAlert = false
-    @State private var categoryToEdit: String = ""
-    @State private var editCategoryName: String = ""
+    @State private var genreToEdit: String = ""
+    @State private var editGenreName: String = ""
     @State private var showingEditAlert = false
-    @State private var categories: [String] = []
-    @State private var localHiddenCategories: [String] = []
-    @State private var showingHiddenCategories = false
+    @State private var genres: [String] = []
     @State private var showingDeleteConfirmation = false
-    @State private var categoryToDelete: String? = nil
-
-    private var visibleCategories: [String] {
-        categories.filter { !localHiddenCategories.contains($0) }
-    }
-
-    private var categoryCounts: [String: Int] {
-        buildCategoryCounts(for: item, month: month, year: year)
-    }
+    @State private var genreToDelete: String? = nil
 
     var body: some View {
         Form {
             Section {
-                HStack {
-                    Text("All")
-                    Text("\(categoryCounts.values.reduce(0, +))")
-                        .foregroundStyle(.secondary)
-                        .font(.callout)
-                    Spacer()
-                    Image(systemName: "lock")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .foregroundStyle(.primary)
-
-                ForEach(visibleCategories, id: \.self) { category in
+                ForEach(genres, id: \.self) { genre in
                     Button {
-                        selectedCategories.remove(SettingsDefault.uncategorizedSentinel)
-                        if selectedCategories.contains(category) {
-                            selectedCategories.remove(category)
-                            if selectedCategories.isEmpty {
-                                selectedCategories = [SettingsDefault.uncategorizedSentinel]
-                            }
+                        if selectedGenres.contains(genre) {
+                            selectedGenres.remove(genre)
                         } else {
-                            selectedCategories.insert(category)
+                            selectedGenres.insert(genre)
                         }
                     } label: {
                         HStack {
-                            Text(category)
-                            Text("\(categoryCounts[category, default: 0])")
-                                .foregroundStyle(.secondary)
+                            Text(genre)
                             Spacer()
-                            if selectedCategories.contains(category) {
+                            if selectedGenres.contains(genre) {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(highlightColor)
@@ -161,198 +53,125 @@ struct CategoryPickerView: View {
                     .foregroundStyle(.primary)
                     .swipeActions(edge: .leading) {
                         Button {
-                            hideCategory(category)
-                        } label: {
-                            Image(systemName: "eye.slash")
-                        }
-                        .tint(.gray)
-                        Button {
-                            categoryToEdit = category
-                            editCategoryName = category
+                            genreToEdit = genre
+                            editGenreName = genre
                             showingEditAlert = true
-                        } label: {
-                            Image(systemName: "pencil")
-                        }
+                        } label: { Image(systemName: "pencil") }
                         .tint(.blue)
                     }
                     .swipeActions(edge: .trailing) {
                         Button {
-                            categoryToDelete = category
+                            genreToDelete = genre
                             showingDeleteConfirmation = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                        } label: { Label("Delete", systemImage: "trash") }
                         .tint(.red)
                     }
                     .contextMenu {
                         Button {
-                            categoryToEdit = category
-                            editCategoryName = category
+                            genreToEdit = genre
+                            editGenreName = genre
                             showingEditAlert = true
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        .tint(.primary)
-                        Button {
-                            hideCategory(category)
-                        } label: {
-                            Label("Hide", systemImage: "eye.slash")
-                        }
+                        } label: { Label("Rename", systemImage: "pencil") }
                         Divider()
                         Button(role: .destructive) {
-                            categoryToDelete = category
+                            genreToDelete = genre
                             showingDeleteConfirmation = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .tint(.red)
+                        } label: { Label("Delete", systemImage: "trash") }
                     }
                 }
                 .onMove { from, to in
-                    var visible = visibleCategories
-                    visible.move(fromOffsets: from, toOffset: to)
-                    let hiddenSet = Set(localHiddenCategories)
-                    var result: [String] = []
-                    var visIdx = 0
-                    for cat in categories {
-                        if hiddenSet.contains(cat) {
-                            result.append(cat)
-                        } else {
-                            result.append(visible[visIdx])
-                            visIdx += 1
-                        }
-                    }
-                    categories = result
-                    storedCategories = categories.asAppStorageString
+                    genres.move(fromOffsets: from, toOffset: to)
+                    storedGenres = genres.asAppStorageString
                 }
 
-                Button {
-                    selectedCategories = [SettingsDefault.uncategorizedSentinel]
-                } label: {
-                    HStack {
-                        Text("Uncategorized")
-                        Text("\(categoryCounts[SettingsDefault.uncategorizedSentinel, default: 0])")
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
-                        Spacer()
-                        if selectedCategories == [SettingsDefault.uncategorizedSentinel] {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(highlightColor)
-                        }
-                    }
-                    .contentShape(Rectangle())
+                if genres.isEmpty {
+                    Text("No genres yet. Tap + to add one.")
+                        .foregroundStyle(.secondary)
+                        .font(.callout)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.primary)
             } footer: {
-                if showFooters && !visibleCategories.isEmpty {
-                    Text("Swipe right on a category to edit or hide it, or left to delete it.")
+                if showFooters && !genres.isEmpty {
+                    Text("Swipe right to rename a genre, left to delete it.")
                 }
             }
-        }
-        .navigationDestination(isPresented: $showingHiddenCategories) {
-            HiddenCategoriesPage(localHiddenCategories: $localHiddenCategories, item: item, month: month, year: year)
         }
         .onAppear {
-            categories = storedCategories.asCategories
-            localHiddenCategories = item.hiddenFilterCategories?.asCategories ?? []
+            genres = storedGenres.asCategories
         }
-        .onChange(of: storedCategories) { _, newValue in
+        .onChange(of: storedGenres) { _, newValue in
             let updated = newValue.asCategories
-            if updated != categories {
-                categories = updated
-            }
+            if updated != genres { genres = updated }
         }
-        .onChange(of: item.hiddenFilterCategories) { _, newValue in
-            localHiddenCategories = newValue?.asCategories ?? []
-            modelContext.saveWithLogging("category picker")
-        }
-        .navigationTitle("Categories")
+        .navigationTitle("Genres")
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(true)
         .toolbar {
-            ToolbarItemGroup(placement: .bottomBar) {
-                Button {
-                    showingHiddenCategories = true
-                } label: {
-                    Label("Hidden", systemImage: "eye.slash")
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") { dismiss() }
+                    .tint(.primary)
+            }
+            ToolbarItem(placement: .bottomBar) {
+                HStack {
+                    Spacer()
+                    Button {
+                        newGenreName = ""
+                        showingAddAlert = true
+                    } label: { Label("Add Genre", systemImage: "plus") }
+                    .tint(.primary)
                 }
-                .tint(.primary)
-                Spacer()
-                Button {
-                    newCategoryName = ""
-                    showingAddAlert = true
-                } label: {
-                    Label("Add Category", systemImage: "plus")
-                }
-                .tint(.primary)
             }
         }
-        .categoryManagementAlerts(
-            newCategoryName: $newCategoryName,
+        .genreManagementAlerts(
+            newGenreName: $newGenreName,
             showingAddAlert: $showingAddAlert,
-            onAdd: addCategory,
-            editCategoryName: $editCategoryName,
+            onAdd: addGenre,
+            editGenreName: $editGenreName,
             showingEditAlert: $showingEditAlert,
-            onRename: { renameCategory(from: categoryToEdit, to: editCategoryName) },
-            categoryToDelete: $categoryToDelete,
+            onRename: { renameGenre(from: genreToEdit, to: editGenreName) },
+            genreToDelete: $genreToDelete,
             showingDeleteConfirmation: $showingDeleteConfirmation,
-            onDelete: { if let cat = categoryToDelete { deleteCategory(cat) } }
+            onDelete: { if let g = genreToDelete { deleteGenre(g) } }
         )
         .tint(.primary)
     }
 
-    private func hideCategory(_ category: String) {
-        selectedCategories.remove(category)
-        if !localHiddenCategories.contains(category) {
-            localHiddenCategories.append(category)
-            item.hiddenFilterCategories = localHiddenCategories.asAppStorageString
-        }
-    }
-
-    private func addCategory() {
-        let trimmed = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
+    private func addGenre() {
+        let trimmed = newGenreName.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
         guard !trimmed.isEmpty else { return }
-        var cats = storedCategories.asCategories
-        if !cats.contains(trimmed) {
-            cats.append(trimmed)
-            storedCategories = cats.asAppStorageString
+        var list = storedGenres.asCategories
+        if !list.contains(trimmed) {
+            list.append(trimmed)
+            storedGenres = list.asAppStorageString
         }
-        selectedCategories.insert(trimmed)
-        newCategoryName = ""
+        selectedGenres.insert(trimmed)
+        newGenreName = ""
     }
 
-    private func renameCategory(from old: String, to new: String) {
+    private func renameGenre(from old: String, to new: String) {
         let trimmed = new.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
         guard !trimmed.isEmpty, trimmed != old else { return }
-        var cats = storedCategories.asCategories
-        if let index = cats.firstIndex(of: old) {
-            cats[index] = trimmed
-            storedCategories = cats.asAppStorageString
+        var list = storedGenres.asCategories
+        if let index = list.firstIndex(of: old) {
+            list[index] = trimmed
+            storedGenres = list.asAppStorageString
         }
-        if selectedCategories.contains(old) {
-            selectedCategories.remove(old)
-            selectedCategories.insert(trimmed)
+        if selectedGenres.contains(old) {
+            selectedGenres.remove(old)
+            selectedGenres.insert(trimmed)
         }
-        if let idx = localHiddenCategories.firstIndex(of: old) {
-            localHiddenCategories[idx] = trimmed
-            item.hiddenFilterCategories = localHiddenCategories.asAppStorageString
-        }
-        updateItemsForRenamedCategory(from: old, to: trimmed, modelContext: modelContext)
+        updateBooksForRenamedGenre(from: old, to: trimmed, modelContext: modelContext)
         NotificationCenter.default.post(
-            name: .categoryRenamed,
+            name: .genreRenamed,
             object: nil,
             userInfo: ["oldName": old, "newName": trimmed]
         )
     }
 
-    private func deleteCategory(_ category: String) {
-        var cats = storedCategories.asCategories
-        cats.removeAll { $0 == category }
-        storedCategories = cats.asAppStorageString
-        selectedCategories.remove(category)
-        localHiddenCategories.removeAll { $0 == category }
-        item.hiddenFilterCategories = localHiddenCategories.asAppStorageString
+    private func deleteGenre(_ genre: String) {
+        var list = storedGenres.asCategories
+        list.removeAll { $0 == genre }
+        storedGenres = list.asAppStorageString
+        selectedGenres.remove(genre)
+        updateBooksForDeletedGenre(genre, modelContext: modelContext)
     }
 }

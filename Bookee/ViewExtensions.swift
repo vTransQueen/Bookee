@@ -1,6 +1,6 @@
 //
 //  ViewExtensions.swift
-//  K Test
+//  Bookee
 //
 //  Created by Kara Eveland on 2/14/26.
 //
@@ -8,30 +8,9 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - Budget Data Change Modifier
-
-/// Attaches the four identical `onChange(of:)` guard-and-persist handlers shared by
-/// BudgetVisualizerPageView and MonthDetailsPageView.
-extension View {
-    func onBudgetDataChange(
-        expenses: [Expense],
-        incomes: [Income],
-        attachments: [BudgetAttachment],
-        reallocations: [Reallocation],
-        isInitialLoad: Bool,
-        persist: @escaping () -> Void
-    ) -> some View {
-        self
-            .onChange(of: expenses)      { _, _ in if !isInitialLoad { persist() } }
-            .onChange(of: incomes)       { _, _ in if !isInitialLoad { persist() } }
-            .onChange(of: attachments)   { _, _ in if !isInitialLoad { persist() } }
-            .onChange(of: reallocations) { _, _ in if !isInitialLoad { persist() } }
-    }
-}
-
 // MARK: - Cancel Toolbar Item
 
-/// Reusable toolbar "Cancel" button used by all Add/Edit and Reallocation views.
+/// Reusable toolbar "Cancel" button used by Add/Edit views.
 struct CancelToolbarItem: ToolbarContent {
     let dismiss: DismissAction
     var body: some ToolbarContent {
@@ -55,11 +34,7 @@ extension View {
     /// Conditionally applies a transformation to a view based on a boolean condition.
     @ViewBuilder
     func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
+        if condition { transform(self) } else { self }
     }
 
     /// Monitors a boolean FocusState binding and trims whitespace from the text when focus is lost.
@@ -70,45 +45,11 @@ extension View {
             }
         }
     }
-
-    /// Attaches the "Edit Recurring Item" scope-selection alert as a background overlay.
-    /// Shared by EditExpenseView and EditIncomeView to avoid duplicating the identical alert block.
-    func recurringEditAlert(
-        isPresented: Binding<Bool>,
-        pendingScope: Binding<RecurringScope?>,
-        applyEdit: @escaping () -> Void
-    ) -> some View {
-        self.background {
-            AlertContainer {
-                Color.clear
-                    .alert("Edit Recurring Item", isPresented: isPresented) {
-                        Button("All Occurrences", role: .destructive) {
-                            pendingScope.wrappedValue = .all
-                            applyEdit()
-                        }
-                        Button("Current and Future", role: .destructive) {
-                            pendingScope.wrappedValue = .currentAndFuture
-                            applyEdit()
-                        }
-                        Button("Current Occurrence", role: .destructive) {
-                            pendingScope.wrappedValue = .currentOnly
-                            applyEdit()
-                        }
-                        Button("Cancel", role: .cancel) {
-                            pendingScope.wrappedValue = nil
-                        }
-                    } message: {
-                        Text("This is a recurring item. Choose which occurrences to update:")
-                    }
-            }
-        }
-    }
 }
 
 // MARK: - Standard Sheet Presentation
 
 extension View {
-    /// Applies the standard full-screen sheet presentation style used throughout the app.
     func standardSheetPresentation() -> some View {
         self
             .presentationDetents([.large])
@@ -118,17 +59,16 @@ extension View {
     }
 }
 
-// MARK: - Category Renamed Observer
+// MARK: - Genre Renamed Observer
 
 extension View {
-    /// Listens for CategoryRenamed notifications and updates both arrays in-place.
-    func onCategoryRenamed(expenses: Binding<[Expense]>, incomes: Binding<[Income]>) -> some View {
-        self.onReceive(NotificationCenter.default.publisher(for: .categoryRenamed)) { notification in
+    /// Listens for GenreRenamed notifications and updates a book's genres array in-place.
+    func onGenreRenamed(genres: Binding<[String]>) -> some View {
+        self.onReceive(NotificationCenter.default.publisher(for: .genreRenamed)) { notification in
             guard let userInfo = notification.userInfo,
                   let oldName = userInfo["oldName"] as? String,
                   let newName = userInfo["newName"] as? String else { return }
-            expenses.wrappedValue = renamingCategory(oldName, to: newName, in: expenses.wrappedValue)
-            incomes.wrappedValue  = renamingCategory(oldName, to: newName, in: incomes.wrappedValue)
+            genres.wrappedValue = genres.wrappedValue.map { $0 == oldName ? newName : $0 }
         }
     }
 }
@@ -136,16 +76,13 @@ extension View {
 // MARK: - Notification Name Constants
 
 extension Notification.Name {
-    static let categoryRenamed            = Notification.Name("CategoryRenamed")
-    static let highlightNewItem           = Notification.Name("HighlightNewItem")
-    static let highlightBudgetOverviewRow = Notification.Name("HighlightBudgetOverviewRow")
+    static let genreRenamed   = Notification.Name("GenreRenamed")
+    static let highlightNewItem = Notification.Name("HighlightNewItem")
 }
 
 // MARK: - Destructive Delete Alert
 
 extension View {
-    /// Attaches a destructive "Delete" confirmation alert using the AlertContainer pattern.
-    /// The alert title and optional message are configurable; buttons are always Delete (destructive) + Cancel.
     func destructiveDeleteAlert(
         title: String = "Delete?",
         message: String? = nil,
@@ -159,9 +96,7 @@ extension View {
                         Button("Delete", role: .destructive, action: onDelete)
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        if let msg = message {
-                            Text(msg)
-                        }
+                        if let msg = message { Text(msg) }
                     }
             }
         }
@@ -171,8 +106,6 @@ extension View {
 // MARK: - Rename Attachment Alert
 
 extension View {
-    /// Attaches the standard "Rename Attachment" alert with text field and extension-aware save.
-    /// Shared by AttachmentManagementView and BudgetAttachmentManagementView.
     func renameAttachmentAlert(
         isPresented: Binding<Bool>,
         renameText: Binding<String>,
@@ -196,71 +129,55 @@ extension View {
     }
 }
 
-// MARK: - Category Management Alerts
+// MARK: - Genre Management Alerts
 
 extension View {
-    /// Attaches the three standard category management alerts (New / Rename / Delete)
-    /// as a single modifier. Shared by CategoryPickerView and FilterOptionsSheet.
-    func categoryManagementAlerts(
-        newCategoryName: Binding<String>,
+    /// Attaches the three standard genre management alerts (New / Rename / Delete).
+    func genreManagementAlerts(
+        newGenreName: Binding<String>,
         showingAddAlert: Binding<Bool>,
         onAdd: @escaping () -> Void,
-        editCategoryName: Binding<String>,
+        editGenreName: Binding<String>,
         showingEditAlert: Binding<Bool>,
         onRename: @escaping () -> Void,
-        categoryToDelete: Binding<String?>,
+        genreToDelete: Binding<String?>,
         showingDeleteConfirmation: Binding<Bool>,
         onDelete: @escaping () -> Void
     ) -> some View {
-        self
-            .background {
-                AlertContainer {
-                    Color.clear
-                        .alert("New Category", isPresented: showingAddAlert) {
-                            TextField("Category Name", text: newCategoryName)
-                                .textInputAutocapitalization(.words)
-                            Button("Add") { onAdd() }
-                            Button("Cancel", role: .cancel) { }
+        self.background {
+            AlertContainer {
+                Color.clear
+                    .alert("New Genre", isPresented: showingAddAlert) {
+                        TextField("Genre Name", text: newGenreName)
+                            .textInputAutocapitalization(.words)
+                        Button("Add") { onAdd() }
+                        Button("Cancel", role: .cancel) { }
+                    }
+                    .alert("Rename Genre", isPresented: showingEditAlert) {
+                        TextField("Genre Name", text: editGenreName)
+                            .textInputAutocapitalization(.words)
+                        Button("Save") { onRename() }
+                        Button("Cancel", role: .cancel) { }
+                    }
+                    .alert("Delete Genre?", isPresented: showingDeleteConfirmation) {
+                        Button("Delete", role: .destructive) {
+                            if genreToDelete.wrappedValue != nil { onDelete() }
+                            genreToDelete.wrappedValue = nil
                         }
-                        .alert("Rename Category", isPresented: showingEditAlert) {
-                            TextField("Category Name", text: editCategoryName)
-                                .textInputAutocapitalization(.words)
-                            Button("Save") { onRename() }
-                            Button("Cancel", role: .cancel) { }
-                        }
-                        .alert("Delete Category?", isPresented: showingDeleteConfirmation) {
-                            Button("Delete", role: .destructive) {
-                                if categoryToDelete.wrappedValue != nil { onDelete() }
-                                categoryToDelete.wrappedValue = nil
-                            }
-                            Button("Cancel", role: .cancel) { categoryToDelete.wrappedValue = nil }
-                        }
-                }
+                        Button("Cancel", role: .cancel) { genreToDelete.wrappedValue = nil }
+                    }
             }
+        }
     }
 }
 
 // MARK: - Safe Binding Helper
 
 /// Utility for creating stable, identity-based bindings to elements within arrays.
-/// Useful for passing bindings to SwiftUI views without risking index-based crashes.
 struct SafeBindingHelper {
-    /// Creates a binding to a specific array element using its identity rather than its index.
-    ///
-    /// - Parameters:
-    ///   - item: The identifiable item to create a binding for (used to match by ID)
-    ///   - array: A binding to the array containing the item
-    /// - Returns: A binding to the item if it exists in the array, or `nil` if not found
-    ///
-    /// - Note: The getter captures the initial index but doesn't re-validate it on access,
-    ///         which could be unsafe if the array is mutated between binding creation and use.
-    ///         The setter safely re-validates the item's position before updating.
     static func binding<T: Identifiable>(for item: T, in array: Binding<[T]>) -> Binding<T>? where T.ID: Equatable {
-        guard let index = array.wrappedValue.firstIndex(where: { $0.id == item.id }) else {
-            return nil
-        }
+        guard let index = array.wrappedValue.firstIndex(where: { $0.id == item.id }) else { return nil }
         return Binding(
-            // WARNING: The getter uses the captured index without re-validating.
             get: { array.wrappedValue[index] },
             set: { newValue in
                 if let currentIndex = array.wrappedValue.firstIndex(where: { $0.id == item.id }) {
