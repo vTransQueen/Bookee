@@ -59,6 +59,27 @@ struct ContentView: View {
             return allNonDeletedBooks.sorted {
                 $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending
             }
+        case .authorAlphabetical:
+            return allNonDeletedBooks.sorted {
+                $0.author.localizedCaseInsensitiveCompare($1.author) == .orderedAscending
+            }
+        case .genreAlphabetical:
+            return allNonDeletedBooks.sorted {
+                let g0 = $0.genres.first ?? ""
+                let g1 = $1.genres.first ?? ""
+                if g0.isEmpty && g1.isEmpty { return false }
+                if g0.isEmpty { return false }
+                if g1.isEmpty { return true }
+                return g0.localizedCaseInsensitiveCompare(g1) == .orderedAscending
+            }
+        case .statusAlphabetical:
+            return allNonDeletedBooks.sorted {
+                $0.status.rawValue.localizedCaseInsensitiveCompare($1.status.rawValue) == .orderedAscending
+            }
+        case .rating:
+            return allNonDeletedBooks.sorted {
+                ($0.rating ?? -1) > ($1.rating ?? -1)
+            }
         }
     }
 
@@ -122,7 +143,7 @@ struct ContentView: View {
                             ForEach(filteredBooks) { book in
                                 bookRow(for: book)
                             }
-                            .onMove(perform: isFiltering || sortOrder == .alphabetical ? nil : { moveBooks(from: $0, to: $1) })
+                            .onMove(perform: isFiltering || sortOrder != .manual ? nil : { moveBooks(from: $0, to: $1) })
                         } header: {
                             if !sortedBooks.isEmpty {
                                 if isFiltering {

@@ -26,6 +26,38 @@ enum ReadingStatus: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - Book Ownership
+
+enum BookOwnership: String, Codable, CaseIterable {
+    case purchased = "Purchased"
+    case borrowed = "Borrowed"
+    case rented = "Rented"
+
+    var icon: String {
+        switch self {
+        case .purchased: return "bag"
+        case .borrowed: return "person.2"
+        case .rented: return "clock.arrow.circlepath"
+        }
+    }
+}
+
+// MARK: - Book Format
+
+enum BookFormat: String, Codable, CaseIterable {
+    case ebook = "eBook"
+    case paperback = "Paperback"
+    case hardcover = "Hardcover"
+
+    var icon: String {
+        switch self {
+        case .ebook: return "ipad"
+        case .paperback: return "book"
+        case .hardcover: return "book.closed"
+        }
+    }
+}
+
 // MARK: - Book Model
 
 @Model
@@ -45,6 +77,8 @@ final class Book {
     /// JSON-encoded [String] of user-defined genres.
     var genresData: String?
     var notes: String?
+    var ownership: BookOwnership?
+    var bookFormat: BookFormat?
     /// Non-nil when soft-deleted; items in Trash are permanently removed after 30 days.
     var deletedDate: Date?
 

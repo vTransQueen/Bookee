@@ -34,6 +34,8 @@ struct AddEditBookView: View {
     @State private var coverImageData: Data? = nil
     @State private var showingDeleteConfirmation = false
     @State private var showingGenrePicker = false
+    @State private var ownership: BookOwnership? = nil
+    @State private var bookFormat: BookFormat? = nil
 
     private enum Field: Hashable { case title, author }
     @FocusState private var focusedField: Field?
@@ -167,6 +169,24 @@ struct AddEditBookView: View {
                 Text("Status")
             }
 
+            Picker(selection: $ownership) {
+                Text("Not Set").tag(BookOwnership?.none)
+                ForEach(BookOwnership.allCases, id: \.self) { o in
+                    Label(o.rawValue, systemImage: o.icon).tag(BookOwnership?.some(o))
+                }
+            } label: {
+                Text("Ownership")
+            }
+
+            Picker(selection: $bookFormat) {
+                Text("Not Set").tag(BookFormat?.none)
+                ForEach(BookFormat.allCases, id: \.self) { f in
+                    Label(f.rawValue, systemImage: f.icon).tag(BookFormat?.some(f))
+                }
+            } label: {
+                Text("Format")
+            }
+
             HStack {
                 Text("Rating")
                 Spacer()
@@ -237,6 +257,8 @@ struct AddEditBookView: View {
         selectedGenres = Set(book.genres)
         notes = book.notes ?? ""
         coverImageData = book.coverImageData
+        ownership = book.ownership
+        bookFormat = book.bookFormat
     }
 
     private func saveChanges() {
@@ -247,6 +269,8 @@ struct AddEditBookView: View {
         book.genres = Array(selectedGenres).sorted()
         book.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
         book.coverImageData = coverImageData
+        book.ownership = ownership
+        book.bookFormat = bookFormat
         book.lastModifiedDate = Date()
         modelContext.saveWithLogging("AddEditBookView: saved book '\(book.title)'")
         onSave?()
