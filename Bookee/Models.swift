@@ -73,7 +73,7 @@ enum BookFormat: String, Codable, CaseIterable {
     var icon: String {
         switch self {
         case .ebook: return "ipad"
-        case .paperback: return "book.closed"
+        case .paperback: return "book.pages"
         case .audiobook: return "headphones"
         }
     }

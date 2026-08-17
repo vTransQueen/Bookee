@@ -76,8 +76,9 @@ struct ContentView: View {
                 return g0.localizedCaseInsensitiveCompare(g1) == .orderedAscending
             }
         case .statusAlphabetical:
+            let statusOrder: [ReadingStatus: Int] = [.toRead: 0, .reading: 1, .finished: 2, .dnf: 3]
             return allNonDeletedBooks.sorted {
-                $0.status.rawValue.localizedCaseInsensitiveCompare($1.status.rawValue) == .orderedAscending
+                (statusOrder[$0.status] ?? 0) < (statusOrder[$1.status] ?? 0)
             }
         case .rating:
             return allNonDeletedBooks.sorted {
@@ -120,14 +121,48 @@ struct ContentView: View {
         return result
     }
 
-    private var booksWithSeries: [Book] {
-        filteredBooks.filter { !($0.seriesName ?? "").isEmpty }
+    private func consecutiveGroups<T: Equatable>(_ books: [Book], key: (Book) -> T) -> [[Book]] {
+        guard !books.isEmpty else { return [] }
+        var result: [[Book]] = []
+        var current = [books[0]]
+        var currentKey = key(books[0])
+        for book in books.dropFirst() {
+            let k = key(book)
+            if k == currentKey {
+                current.append(book)
+            } else {
+                result.append(current)
+                current = [book]
+                currentKey = k
+            }
+        }
+        result.append(current)
+        return result
     }
 
-    private var booksWithoutSeries: [Book] {
-        filteredBooks
-            .filter { ($0.seriesName ?? "").isEmpty }
-            .sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
+    private var bookSections: [[Book]] {
+        switch sortOrder {
+        case .alphabetical:
+            return consecutiveGroups(filteredBooks) { book in
+                guard let first = book.displayTitle.first else { return "#" }
+                let ch = String(first).folding(options: .diacriticInsensitive, locale: .current).uppercased()
+                return (ch.first?.isLetter == true) ? String(ch.first!) : "#"
+            }
+        case .authorAlphabetical:
+            return consecutiveGroups(filteredBooks) { book in
+                guard let first = book.author.first else { return "#" }
+                let ch = String(first).folding(options: .diacriticInsensitive, locale: .current).uppercased()
+                return (ch.first?.isLetter == true) ? String(ch.first!) : "#"
+            }
+        case .seriesAlphabetical:
+            return consecutiveGroups(filteredBooks) { $0.seriesName ?? "" }
+        case .genreAlphabetical:
+            return consecutiveGroups(filteredBooks) { $0.genres.first ?? "" }
+        case .statusAlphabetical:
+            return consecutiveGroups(filteredBooks) { $0.status }
+        case .rating:
+            return consecutiveGroups(filteredBooks) { $0.rating as Int? }
+        }
     }
 
     private var isFiltering: Bool {
@@ -152,35 +187,13 @@ struct ContentView: View {
             ScrollViewReader { proxy in
                 ZStack {
                     List {
-                        if sortOrder == .seriesAlphabetical {
-                            if !booksWithSeries.isEmpty {
-                                Section {
-                                    ForEach(booksWithSeries) { book in
-                                        bookRow(for: book)
-                                    }
-                                } header: {
-                                    if isFiltering {
-                                        Text("\(filteredBooks.count) of \(sortedBooks.count) book\(sortedBooks.count == 1 ? "" : "s")")
-                                    } else {
-                                        Text("Library")
-                                    }
-                                }
-                            }
-                            if !booksWithoutSeries.isEmpty {
-                                Section("No Series Added") {
-                                    ForEach(booksWithoutSeries) { book in
-                                        bookRow(for: book)
-                                    }
-                                }
-                            }
-                        } else {
+                        ForEach(Array(bookSections.enumerated()), id: \.offset) { index, sectionBooks in
                             Section {
-                                ForEach(filteredBooks) { book in
+                                ForEach(sectionBooks) { book in
                                     bookRow(for: book)
                                 }
-                                .onMove(perform: nil)
                             } header: {
-                                if !sortedBooks.isEmpty {
+                                if index == 0 && !sortedBooks.isEmpty {
                                     if isFiltering {
                                         Text("\(filteredBooks.count) of \(sortedBooks.count) book\(sortedBooks.count == 1 ? "" : "s")")
                                     } else {
@@ -188,7 +201,7 @@ struct ContentView: View {
                                     }
                                 }
                             } footer: {
-                                if showFooters && !sortedBooks.isEmpty && !isFiltering {
+                                if showFooters && !isFiltering && index == bookSections.count - 1 {
                                     Text("Swipe right on a book to duplicate it, or left to delete it.")
                                 }
                             }

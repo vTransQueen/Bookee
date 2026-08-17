@@ -44,20 +44,28 @@ struct BookRowView: View {
             }
 
             HStack(alignment: .center, spacing: 12) {
-                coverThumbnail
-
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(book.seriesName.map { "\($0): \(book.displayTitle)" } ?? book.displayTitle)
-                        .font(.headline)
-                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Image(systemName: "book.closed")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(book.seriesName.map { "\($0): \(book.displayTitle)" } ?? book.displayTitle)
+                            .font(.headline)
+                            .lineLimit(1)
+                    }
 
                     HStack(spacing: 6) {
+                        Image(systemName: "person")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         Text(book.author.isEmpty ? "Unknown Author" : book.author)
                             .font(.caption)
                             .lineLimit(1)
                             .foregroundStyle(.secondary)
-                        Text("•").font(.caption).foregroundStyle(.secondary)
                         if let number = book.seriesNumber {
+                            Image(systemName: "books.vertical")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             if let total = book.seriesTotalCount {
                                 Text("Book \(number)/\(total)")
                                     .font(.caption)
@@ -72,29 +80,41 @@ struct BookRowView: View {
 
                     HStack(spacing: 6) {
                         if let format = book.bookFormat {
+                            Image(systemName: format.icon)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             Text(format.rawValue)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Text("•").font(.caption).foregroundStyle(.secondary)
                         }
 
                         if let ownership = book.ownership {
+                            Image(systemName: ownership.icon)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             Text(ownership.rawValue)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Text("•").font(.caption).foregroundStyle(.secondary)
                         }
 
+                        Image(systemName: book.status.icon)
+                            .font(.caption)
+                            .foregroundStyle(statusColor)
                         Text(book.status.rawValue)
                             .font(.caption)
                             .foregroundStyle(statusColor)
 
-                        Text("•").font(.caption).foregroundStyle(.secondary)
                         if let rating = book.rating, rating > 0 {
+                            Image(systemName: "star.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             Text("\(rating)/5 Stars")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
+                            Image(systemName: "star")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             Text("Unrated")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -136,25 +156,4 @@ struct BookRowView: View {
         }
     }
 
-    private var coverThumbnail: some View {
-        Group {
-            if let coverData = book.coverImageData, let uiImage = UIImage(data: coverData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 48, height: 67)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-            } else {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.secondary.opacity(0.15))
-                    .frame(width: 48, height: 67)
-                    .overlay {
-                        Image(systemName: "book.closed")
-                            .font(.system(size: 24))
-                            .foregroundStyle(.secondary)
-                    }
-            }
-        }
-    }
 }

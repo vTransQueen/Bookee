@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import PhotosUI
 
 struct AddEditBookView: View {
     @Bindable var book: Book
@@ -31,8 +30,6 @@ struct AddEditBookView: View {
     @State private var selectedGenres: Set<String>
     @State private var selectedLocations: Set<String>
     @State private var notes: String
-    @State private var coverImageItem: PhotosPickerItem? = nil
-    @State private var coverImageData: Data?
     @State private var showingDeleteConfirmation = false
     @State private var showingGenrePicker = false
     @State private var showingLocationPicker = false
@@ -56,7 +53,6 @@ struct AddEditBookView: View {
         _selectedGenres = State(initialValue: Set(book.genres))
         _selectedLocations = State(initialValue: Set(book.locations))
         _notes = State(initialValue: book.notes ?? "")
-        _coverImageData = State(initialValue: book.coverImageData)
         _ownership = State(initialValue: book.ownership ?? .unowned)
         _bookFormat = State(initialValue: book.bookFormat ?? .paperback)
         _seriesName = State(initialValue: book.seriesName ?? "")
@@ -76,17 +72,8 @@ struct AddEditBookView: View {
             titleSection
             detailsSection
             notesSection
-            coverSection
         }
         .scrollDismissesKeyboard(.immediately)
-        .onChange(of: coverImageItem) { _, newItem in
-            Task {
-                if let item = newItem,
-                   let data = try? await item.loadTransferable(type: Data.self) {
-                    coverImageData = data
-                }
-            }
-        }
         .navigationTitle("Edit Book")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -104,11 +91,6 @@ struct AddEditBookView: View {
                     Button { showingDeleteConfirmation = true } label: { Label("Delete", systemImage: "trash") }
                         .tint(.red)
                 }
-                Spacer()
-                PhotosPicker(selection: $coverImageItem, matching: .images) {
-                    Label("Cover Photo", systemImage: "photo")
-                }
-                .tint(.primary)
             }
         }
         .onAppear {
@@ -299,38 +281,6 @@ struct AddEditBookView: View {
         }
     }
 
-    private var coverSection: some View {
-        Section {
-            if coverImageData == nil {
-                Text("Tap \(Image(systemName: "photo")) in the toolbar to add a cover photo.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if let data = coverImageData, let uiImage = UIImage(data: data) {
-                HStack {
-                    Spacer()
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 180)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-
-                Button(role: .destructive) {
-                    coverImageData = nil
-                    coverImageItem = nil
-                } label: {
-                    Label("Remove Cover", systemImage: "trash")
-                }
-            }
-
-        } header: {
-            Text("Cover")
-        }
-    }
-
     // MARK: - Logic
 
     private func saveChanges() {
@@ -341,7 +291,6 @@ struct AddEditBookView: View {
         book.genres = Array(selectedGenres).sorted()
         book.locations = Array(selectedLocations).sorted()
         book.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
-        book.coverImageData = coverImageData
         book.ownership = ownership
         book.bookFormat = bookFormat
         book.seriesName = seriesName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : seriesName.trimmingCharacters(in: .whitespacesAndNewlines)
