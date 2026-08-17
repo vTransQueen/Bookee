@@ -69,7 +69,6 @@ enum SortOrder: String, CaseIterable, Codable {
     case rating = "Rating"
     case authorAlphabetical = "Author"
     case manual = "Manual"
-    case dateAdded = "Date Added"
 }
 
 // MARK: - Genre / Category Helpers

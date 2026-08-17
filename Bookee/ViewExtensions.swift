@@ -171,6 +171,47 @@ extension View {
     }
 }
 
+// MARK: - Location Management Alerts
+
+extension View {
+    func locationManagementAlerts(
+        newLocationName: Binding<String>,
+        showingAddAlert: Binding<Bool>,
+        onAdd: @escaping () -> Void,
+        editLocationName: Binding<String>,
+        showingEditAlert: Binding<Bool>,
+        onRename: @escaping () -> Void,
+        locationToDelete: Binding<String?>,
+        showingDeleteConfirmation: Binding<Bool>,
+        onDelete: @escaping () -> Void
+    ) -> some View {
+        self.background {
+            AlertContainer {
+                Color.clear
+                    .alert("New Location", isPresented: showingAddAlert) {
+                        TextField("Location Name", text: newLocationName)
+                            .textInputAutocapitalization(.words)
+                        Button("Add") { onAdd() }
+                        Button("Cancel", role: .cancel) { }
+                    }
+                    .alert("Rename Location", isPresented: showingEditAlert) {
+                        TextField("Location Name", text: editLocationName)
+                            .textInputAutocapitalization(.words)
+                        Button("Save") { onRename() }
+                        Button("Cancel", role: .cancel) { }
+                    }
+                    .alert("Delete Location?", isPresented: showingDeleteConfirmation) {
+                        Button("Delete", role: .destructive) {
+                            if locationToDelete.wrappedValue != nil { onDelete() }
+                            locationToDelete.wrappedValue = nil
+                        }
+                        Button("Cancel", role: .cancel) { locationToDelete.wrappedValue = nil }
+                    }
+            }
+        }
+    }
+}
+
 // MARK: - Safe Binding Helper
 
 /// Utility for creating stable, identity-based bindings to elements within arrays.

@@ -11,10 +11,20 @@ import SwiftData
 // MARK: - Reading Status
 
 enum ReadingStatus: String, Codable, CaseIterable {
-    case toRead = "To Read"
+    case finished = "Read"
+    case toRead = "Unread"
     case reading = "Reading"
-    case finished = "Finished"
     case dnf = "Did Not Finish"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        switch raw {
+        case "To Read": self = .toRead
+        case "Finished": self = .finished
+        default: self = ReadingStatus(rawValue: raw) ?? .toRead
+        }
+    }
 
     var icon: String {
         switch self {
@@ -29,9 +39,9 @@ enum ReadingStatus: String, Codable, CaseIterable {
 // MARK: - Book Ownership
 
 enum BookOwnership: String, Codable, CaseIterable {
-    case purchased = "Purchased"
-    case borrowed = "Borrowed"
     case rented = "Rented"
+    case borrowed = "Borrowed"
+    case purchased = "Purchased"
 
     var icon: String {
         switch self {
@@ -45,15 +55,21 @@ enum BookOwnership: String, Codable, CaseIterable {
 // MARK: - Book Format
 
 enum BookFormat: String, Codable, CaseIterable {
+    case paperback = "Paper"
     case ebook = "eBook"
-    case paperback = "Paperback"
-    case hardcover = "Hardcover"
+    case audiobook = "Audiobook"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        self = raw == "Paperback" ? .paperback : (BookFormat(rawValue: raw) ?? .paperback)
+    }
 
     var icon: String {
         switch self {
         case .ebook: return "ipad"
         case .paperback: return "book"
-        case .hardcover: return "book.closed"
+        case .audiobook: return "headphones"
         }
     }
 }
@@ -76,6 +92,8 @@ final class Book {
     var dateFinished: Date?
     /// JSON-encoded [String] of user-defined genres.
     var genresData: String?
+    /// JSON-encoded [String] of user-defined locations.
+    var locationsData: String?
     var notes: String?
     var ownership: BookOwnership?
     var bookFormat: BookFormat?
@@ -127,6 +145,20 @@ final class Book {
             guard let data = try? JSONEncoder().encode(newValue),
                   let string = String(data: data, encoding: .utf8) else { return }
             genresData = string
+        }
+    }
+
+    var locations: [String] {
+        get {
+            guard let locationsData,
+                  let data = locationsData.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+            return decoded
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue),
+                  let string = String(data: data, encoding: .utf8) else { return }
+            locationsData = string
         }
     }
 

@@ -44,6 +44,40 @@ func updateBooksForDeletedGenre(_ genre: String, modelContext: ModelContext) {
     }
 }
 
+/// Renames a location in every book's locations array and persists the changes.
+func updateBooksForRenamedLocation(from oldName: String, to newName: String, modelContext: ModelContext) {
+    let descriptor = FetchDescriptor<Book>()
+    guard let books = try? modelContext.fetch(descriptor) else { return }
+    var changed = false
+    for book in books {
+        let current = book.locations
+        if current.contains(oldName) {
+            book.locations = current.map { $0 == oldName ? newName : $0 }
+            changed = true
+        }
+    }
+    if changed {
+        modelContext.saveWithLogging("Renamed location '\(oldName)' → '\(newName)'")
+    }
+}
+
+/// Removes a location from every book's locations array and persists the changes.
+func updateBooksForDeletedLocation(_ location: String, modelContext: ModelContext) {
+    let descriptor = FetchDescriptor<Book>()
+    guard let books = try? modelContext.fetch(descriptor) else { return }
+    var changed = false
+    for book in books {
+        let current = book.locations
+        if current.contains(location) {
+            book.locations = current.filter { $0 != location }
+            changed = true
+        }
+    }
+    if changed {
+        modelContext.saveWithLogging("Removed location '\(location)' from books")
+    }
+}
+
 /// Returns a dictionary mapping each genre name to the number of non-deleted books that have it.
 func buildGenreCounts(modelContext: ModelContext) -> [String: Int] {
     let descriptor = FetchDescriptor<Book>(predicate: #Predicate { $0.deletedDate == nil })

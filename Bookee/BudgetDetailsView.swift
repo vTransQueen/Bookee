@@ -29,11 +29,13 @@ struct AddEditBookView: View {
     @State private var status: ReadingStatus = .toRead
     @State private var rating: Int = 0
     @State private var selectedGenres: Set<String> = []
+    @State private var selectedLocations: Set<String> = []
     @State private var notes: String = ""
     @State private var coverImageItem: PhotosPickerItem? = nil
     @State private var coverImageData: Data? = nil
     @State private var showingDeleteConfirmation = false
     @State private var showingGenrePicker = false
+    @State private var showingLocationPicker = false
     @State private var ownership: BookOwnership? = nil
     @State private var bookFormat: BookFormat? = nil
     @State private var seriesName: String = ""
@@ -92,6 +94,9 @@ struct AddEditBookView: View {
         }
         .navigationDestination(isPresented: $showingGenrePicker) {
             CategoryPickerView(selectedGenres: $selectedGenres)
+        }
+        .navigationDestination(isPresented: $showingLocationPicker) {
+            LocationPickerView(selectedLocations: $selectedLocations)
         }
         .background {
             AlertContainer {
@@ -201,19 +206,40 @@ struct AddEditBookView: View {
             }
 
             Picker(selection: $bookFormat) {
-                Text("Not Set").tag(BookFormat?.none)
                 ForEach(BookFormat.allCases, id: \.self) { f in
                     Label(f.rawValue, systemImage: f.icon).tag(BookFormat?.some(f))
                 }
+                Divider()
+                Label("Not Set", systemImage: "xmark").tag(BookFormat?.none)
             } label: {
                 Text("Format")
             }
 
+            Button {
+                showingLocationPicker = true
+            } label: {
+                HStack {
+                    Text("Location")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if selectedLocations.isEmpty {
+                        Text("None")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(selectedLocations.sorted().joined(separator: ", "))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .tint(.primary)
+
             Picker(selection: $ownership) {
-                Text("Not Set").tag(BookOwnership?.none)
                 ForEach(BookOwnership.allCases, id: \.self) { o in
                     Label(o.rawValue, systemImage: o.icon).tag(BookOwnership?.some(o))
                 }
+                Divider()
+                Label("Not Set", systemImage: "xmark").tag(BookOwnership?.none)
             } label: {
                 Text("Ownership")
             }
@@ -229,7 +255,6 @@ struct AddEditBookView: View {
                                 rating = star == rating ? 0 : star
                             }
                     }
-
                 }
             }
         } header: {
@@ -286,6 +311,7 @@ struct AddEditBookView: View {
         status = book.status
         rating = book.rating ?? 0
         selectedGenres = Set(book.genres)
+        selectedLocations = Set(book.locations)
         notes = book.notes ?? ""
         coverImageData = book.coverImageData
         ownership = book.ownership
@@ -300,6 +326,7 @@ struct AddEditBookView: View {
         book.status = status
         book.rating = rating > 0 ? rating : nil
         book.genres = Array(selectedGenres).sorted()
+        book.locations = Array(selectedLocations).sorted()
         book.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
         book.coverImageData = coverImageData
         book.ownership = ownership

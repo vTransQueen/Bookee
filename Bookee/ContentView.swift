@@ -51,8 +51,6 @@ struct ContentView: View {
         switch sortOrder {
         case .manual:
             return allNonDeletedBooks.sorted { $0.manualSortOrder < $1.manualSortOrder }
-        case .dateAdded:
-            return allNonDeletedBooks.sorted { $0.timestamp > $1.timestamp }
         case .alphabetical:
             return allNonDeletedBooks.sorted {
                 $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending
