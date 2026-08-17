@@ -152,7 +152,7 @@ struct TrashView: View {
         } else {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { isSelecting = true } label: {
-                    Label("Select", systemImage: "checklist")
+                    Label("Select", systemImage: "checkmark.circle")
                 }.tint(.primary).disabled(deletedBooks.isEmpty)
             }
         }
@@ -174,7 +174,7 @@ struct TrashView: View {
                         selectedBooks = Set(deletedBooks.map { $0.persistentModelID })
                     }
                 } label: {
-                    Label(selectAllText, systemImage: selectedBooks.count == deletedBooks.count ? "checklist.unchecked" : "checklist.checked")
+                    Label(selectAllText, systemImage: selectedBooks.count == deletedBooks.count ? "circle" : "checkmark.circle")
                 }.tint(.primary)
                 Button(role: .destructive) {
                     guard !selectedBooks.isEmpty else { return }

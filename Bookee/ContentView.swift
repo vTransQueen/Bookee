@@ -318,9 +318,28 @@ struct ContentView: View {
             }
         } else {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { isSelecting = true } label: {
-                    Label("Select", systemImage: "checklist")
-                }.tint(.primary).disabled(sortedBooks.isEmpty)
+                Menu {
+                    Button {
+                        isSelecting = true
+                    } label: {
+                        Label("Select", systemImage: "checkmark.circle")
+                    }
+                    .disabled(sortedBooks.isEmpty)
+
+                    Menu {
+                        Picker("Sort by", selection: $sortOrder) {
+                            ForEach(SortOrder.allCases, id: \.self) { order in
+                                Text(order.rawValue).tag(order)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                    } label: {
+                        Label("Sort by", systemImage: "arrow.up.arrow.down")
+                    }
+                } label: {
+                    Label("Options", systemImage: "ellipsis")
+                }
+                .tint(.primary)
             }
         }
     }
@@ -336,17 +355,14 @@ struct ContentView: View {
                     else { selectedBooks = Set(filteredBooks.map { $0.persistentModelID }) }
                 } label: {
                     Label(allSelected ? "Deselect All" : "Select All",
-                          systemImage: allSelected ? "checklist.unchecked" : "checklist.checked")
+                          systemImage: allSelected ? "circle" : "checkmark.circle")
                 }.tint(.primary)
                 Button(role: .destructive) {
                     if !selectedBooks.isEmpty { showingDeleteConfirmation = true }
                 } label: { Label("Delete", systemImage: "trash") }.tint(.red)
             } else {
-                // Filter button (filled icon when filters are active)
                 Button { showingFilterSheet = true } label: {
-                    Label("Filter", systemImage: isFiltering
-                          ? "line.3.horizontal.decrease.circle.fill"
-                          : "line.3.horizontal.decrease.circle")
+                    Label("Filter", systemImage: "line.3.horizontal.decrease")
                 }.tint(isFiltering ? highlightColor : .primary)
 
                 Spacer()
