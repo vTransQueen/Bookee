@@ -37,7 +37,7 @@ struct ContentView: View {
 
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("dateFormat") private var dateFormat: DateFormat = .abbreviated
-    @AppStorage("sortOrder") private var sortOrder: SortOrder = .manual
+    @AppStorage("sortOrder") private var sortOrder: SortOrder = .alphabetical
     @AppStorage("userName") private var userName: String = ""
     @HighlightColorStorage private var highlightColor
     @AppStorage("showFooters") private var showFooters: Bool = true
@@ -53,8 +53,6 @@ struct ContentView: View {
             return allNonDeletedBooks.sorted { $0.manualSortOrder < $1.manualSortOrder }
         case .dateAdded:
             return allNonDeletedBooks.sorted { $0.timestamp > $1.timestamp }
-        case .dateOpened:
-            return allNonDeletedBooks.sorted { $0.lastModifiedDate > $1.lastModifiedDate }
         case .alphabetical:
             return allNonDeletedBooks.sorted {
                 $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending
@@ -62,6 +60,15 @@ struct ContentView: View {
         case .authorAlphabetical:
             return allNonDeletedBooks.sorted {
                 $0.author.localizedCaseInsensitiveCompare($1.author) == .orderedAscending
+            }
+        case .seriesAlphabetical:
+            return allNonDeletedBooks.sorted { (a: Book, b: Book) -> Bool in
+                let s0 = a.seriesName ?? ""
+                let s1 = b.seriesName ?? ""
+                if s0.isEmpty && s1.isEmpty { return false }
+                if s0.isEmpty { return false }
+                if s1.isEmpty { return true }
+                return s0.localizedCaseInsensitiveCompare(s1) == .orderedAscending
             }
         case .genreAlphabetical:
             return allNonDeletedBooks.sorted {
@@ -117,6 +124,16 @@ struct ContentView: View {
         return result
     }
 
+    private var booksWithSeries: [Book] {
+        filteredBooks.filter { !($0.seriesName ?? "").isEmpty }
+    }
+
+    private var booksWithoutSeries: [Book] {
+        filteredBooks
+            .filter { ($0.seriesName ?? "").isEmpty }
+            .sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
+    }
+
     private var isFiltering: Bool {
         filterStatus != nil || filterGenre != nil || filterRating != nil
     }
@@ -139,22 +156,45 @@ struct ContentView: View {
             ScrollViewReader { proxy in
                 ZStack {
                     List {
-                        Section {
-                            ForEach(filteredBooks) { book in
-                                bookRow(for: book)
-                            }
-                            .onMove(perform: isFiltering || sortOrder != .manual ? nil : { moveBooks(from: $0, to: $1) })
-                        } header: {
-                            if !sortedBooks.isEmpty {
-                                if isFiltering {
-                                    Text("\(filteredBooks.count) of \(sortedBooks.count) book\(sortedBooks.count == 1 ? "" : "s")")
-                                } else {
-                                    Text("Library")
+                        if sortOrder == .seriesAlphabetical {
+                            if !booksWithSeries.isEmpty {
+                                Section {
+                                    ForEach(booksWithSeries) { book in
+                                        bookRow(for: book)
+                                    }
+                                } header: {
+                                    if isFiltering {
+                                        Text("\(filteredBooks.count) of \(sortedBooks.count) book\(sortedBooks.count == 1 ? "" : "s")")
+                                    } else {
+                                        Text("Library")
+                                    }
                                 }
                             }
-                        } footer: {
-                            if showFooters && !sortedBooks.isEmpty && !isFiltering {
-                                Text("Swipe right on a book to duplicate it, or left to delete it.")
+                            if !booksWithoutSeries.isEmpty {
+                                Section("No Series Added") {
+                                    ForEach(booksWithoutSeries) { book in
+                                        bookRow(for: book)
+                                    }
+                                }
+                            }
+                        } else {
+                            Section {
+                                ForEach(filteredBooks) { book in
+                                    bookRow(for: book)
+                                }
+                                .onMove(perform: isFiltering || sortOrder != .manual ? nil : { moveBooks(from: $0, to: $1) })
+                            } header: {
+                                if !sortedBooks.isEmpty {
+                                    if isFiltering {
+                                        Text("\(filteredBooks.count) of \(sortedBooks.count) book\(sortedBooks.count == 1 ? "" : "s")")
+                                    } else {
+                                        Text("Library")
+                                    }
+                                }
+                            } footer: {
+                                if showFooters && !sortedBooks.isEmpty && !isFiltering {
+                                    Text("Swipe right on a book to duplicate it, or left to delete it.")
+                                }
                             }
                         }
                     }
@@ -340,23 +380,21 @@ struct ContentView: View {
         } else {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Picker("Sort by", selection: $sortOrder) {
+                        ForEach(SortOrder.allCases, id: \.self) { order in
+                            Text(order.rawValue).tag(order)
+                        }
+                    }
+                    .pickerStyle(.inline)
+
+                    Divider()
+
                     Button {
                         isSelecting = true
                     } label: {
                         Label("Select", systemImage: "checkmark.circle")
                     }
                     .disabled(sortedBooks.isEmpty)
-
-                    Menu {
-                        Picker("Sort by", selection: $sortOrder) {
-                            ForEach(SortOrder.allCases, id: \.self) { order in
-                                Text(order.rawValue).tag(order)
-                            }
-                        }
-                        .pickerStyle(.inline)
-                    } label: {
-                        Label("Sort by", systemImage: "arrow.up.arrow.down")
-                    }
                 } label: {
                     Label("Options", systemImage: "ellipsis")
                 }

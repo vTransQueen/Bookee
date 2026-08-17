@@ -79,6 +79,8 @@ final class Book {
     var notes: String?
     var ownership: BookOwnership?
     var bookFormat: BookFormat?
+    var seriesName: String?
+    var seriesNumber: Int?
     /// Non-nil when soft-deleted; items in Trash are permanently removed after 30 days.
     var deletedDate: Date?
 

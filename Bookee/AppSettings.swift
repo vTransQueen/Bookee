@@ -62,14 +62,14 @@ enum DateFormat: String, CaseIterable, Codable {
 
 /// Defines sorting options for books in the library.
 enum SortOrder: String, CaseIterable, Codable {
+    case alphabetical = "Title"
+    case genreAlphabetical = "Genre"
+    case seriesAlphabetical = "Series"
+    case statusAlphabetical = "Status"
+    case rating = "Rating"
+    case authorAlphabetical = "Author"
     case manual = "Manual"
     case dateAdded = "Date Added"
-    case dateOpened = "Date Opened"
-    case alphabetical = "Title (A–Z)"
-    case authorAlphabetical = "Author (A–Z)"
-    case genreAlphabetical = "Genre (A–Z)"
-    case statusAlphabetical = "Status (A–Z)"
-    case rating = "Rating"
 }
 
 // MARK: - Genre / Category Helpers

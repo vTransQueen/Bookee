@@ -36,8 +36,10 @@ struct AddEditBookView: View {
     @State private var showingGenrePicker = false
     @State private var ownership: BookOwnership? = nil
     @State private var bookFormat: BookFormat? = nil
+    @State private var seriesName: String = ""
+    @State private var seriesNumber: String = ""
 
-    private enum Field: Hashable { case title, author }
+    private enum Field: Hashable { case title, author, seriesName, seriesNumber }
     @FocusState private var focusedField: Field?
 
     var isDoneButtonDisabled: Bool {
@@ -112,7 +114,7 @@ struct AddEditBookView: View {
                 Text("Title")
                 Spacer()
                 CursorAtEndTextField_SwiftUI(text: $title, placeholder: "Book") {
-                    focusedField = .author
+                    focusedField = .seriesName
                 }
                 .multilineTextAlignment(.trailing)
                 .textInputAutocapitalization(.words)
@@ -121,6 +123,35 @@ struct AddEditBookView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture { focusedField = .title }
+
+            HStack {
+                Text("Series")
+                Spacer()
+                CursorAtEndTextField_SwiftUI(text: $seriesName, placeholder: "Name") {
+                    focusedField = .seriesNumber
+                }
+                .multilineTextAlignment(.trailing)
+                .textInputAutocapitalization(.words)
+                .returnKey(.next)
+                .focused($focusedField, equals: .seriesName)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { focusedField = .seriesName }
+
+            HStack {
+                Text("Book #")
+                Spacer()
+                CursorAtEndTextField_SwiftUI(text: $seriesNumber, placeholder: "Number") {
+                    focusedField = .author
+                }
+                .multilineTextAlignment(.trailing)
+                .keyboardType(.numberPad)
+                .textInputAutocapitalization(.never)
+                .returnKey(.next)
+                .focused($focusedField, equals: .seriesNumber)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { focusedField = .seriesNumber }
 
             HStack {
                 Text("Author")
@@ -169,15 +200,6 @@ struct AddEditBookView: View {
                 Text("Status")
             }
 
-            Picker(selection: $ownership) {
-                Text("Not Set").tag(BookOwnership?.none)
-                ForEach(BookOwnership.allCases, id: \.self) { o in
-                    Label(o.rawValue, systemImage: o.icon).tag(BookOwnership?.some(o))
-                }
-            } label: {
-                Text("Ownership")
-            }
-
             Picker(selection: $bookFormat) {
                 Text("Not Set").tag(BookFormat?.none)
                 ForEach(BookFormat.allCases, id: \.self) { f in
@@ -185,6 +207,15 @@ struct AddEditBookView: View {
                 }
             } label: {
                 Text("Format")
+            }
+
+            Picker(selection: $ownership) {
+                Text("Not Set").tag(BookOwnership?.none)
+                ForEach(BookOwnership.allCases, id: \.self) { o in
+                    Label(o.rawValue, systemImage: o.icon).tag(BookOwnership?.some(o))
+                }
+            } label: {
+                Text("Ownership")
             }
 
             HStack {
@@ -259,6 +290,8 @@ struct AddEditBookView: View {
         coverImageData = book.coverImageData
         ownership = book.ownership
         bookFormat = book.bookFormat
+        seriesName = book.seriesName ?? ""
+        seriesNumber = book.seriesNumber.map { String($0) } ?? ""
     }
 
     private func saveChanges() {
@@ -271,6 +304,8 @@ struct AddEditBookView: View {
         book.coverImageData = coverImageData
         book.ownership = ownership
         book.bookFormat = bookFormat
+        book.seriesName = seriesName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : seriesName.trimmingCharacters(in: .whitespacesAndNewlines)
+        book.seriesNumber = Int(seriesNumber.trimmingCharacters(in: .whitespacesAndNewlines))
         book.lastModifiedDate = Date()
         modelContext.saveWithLogging("AddEditBookView: saved book '\(book.title)'")
         onSave?()
