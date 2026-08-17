@@ -65,7 +65,7 @@ struct FilterOptionsSheet: View {
             ForEach(ReadingStatus.allCases, id: \.self) { status in
                 filterRow(
                     label: status.rawValue,
-                    icon: status.icon,
+
                     isSelected: filterStatus == status,
                     action: { filterStatus = filterStatus == status ? nil : status }
                 )

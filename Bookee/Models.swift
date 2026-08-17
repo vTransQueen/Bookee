@@ -11,10 +11,10 @@ import SwiftData
 // MARK: - Reading Status
 
 enum ReadingStatus: String, Codable, CaseIterable {
-    case finished = "Read"
     case toRead = "Unread"
-    case reading = "Reading"
-    case dnf = "Did Not Finish"
+    case reading = "Started"
+    case finished = "Finished"
+    case dnf = "Stopped"
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -22,6 +22,7 @@ enum ReadingStatus: String, Codable, CaseIterable {
         switch raw {
         case "To Read": self = .toRead
         case "Finished": self = .finished
+        case "Did Not Finish", "Not Finished": self = .dnf
         default: self = ReadingStatus(rawValue: raw) ?? .toRead
         }
     }
@@ -40,14 +41,16 @@ enum ReadingStatus: String, Codable, CaseIterable {
 
 enum BookOwnership: String, Codable, CaseIterable {
     case rented = "Rented"
+    case purchased = "Owned"
     case borrowed = "Borrowed"
-    case purchased = "Purchased"
+    case unowned = "Unowned"
 
     var icon: String {
         switch self {
         case .purchased: return "bag"
         case .borrowed: return "person.2"
         case .rented: return "clock.arrow.circlepath"
+        case .unowned: return "xmark.circle"
         }
     }
 }
@@ -56,19 +59,21 @@ enum BookOwnership: String, Codable, CaseIterable {
 
 enum BookFormat: String, Codable, CaseIterable {
     case paperback = "Paper"
+    case audiobook = "Audio"
     case ebook = "eBook"
-    case audiobook = "Audiobook"
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let raw = try container.decode(String.self)
-        self = raw == "Paperback" ? .paperback : (BookFormat(rawValue: raw) ?? .paperback)
+        if raw == "Paperback" { self = .paperback }
+        else if raw == "Audiobook" { self = .audiobook }
+        else { self = BookFormat(rawValue: raw) ?? .paperback }
     }
 
     var icon: String {
         switch self {
         case .ebook: return "ipad"
-        case .paperback: return "book"
+        case .paperback: return "book.closed"
         case .audiobook: return "headphones"
         }
     }
@@ -95,10 +100,22 @@ final class Book {
     /// JSON-encoded [String] of user-defined locations.
     var locationsData: String?
     var notes: String?
-    var ownership: BookOwnership?
-    var bookFormat: BookFormat?
+    @Attribute(originalName: "ownership")
+    var ownershipRaw: String?
+    var ownership: BookOwnership? {
+        get { ownershipRaw.flatMap(BookOwnership.init(rawValue:)) }
+        set { ownershipRaw = newValue?.rawValue }
+    }
+
+    @Attribute(originalName: "bookFormat")
+    var bookFormatRaw: String?
+    var bookFormat: BookFormat? {
+        get { bookFormatRaw.flatMap(BookFormat.init(rawValue:)) }
+        set { bookFormatRaw = newValue?.rawValue }
+    }
     var seriesName: String?
     var seriesNumber: Int?
+    var seriesTotalCount: Int?
     /// Non-nil when soft-deleted; items in Trash are permanently removed after 30 days.
     var deletedDate: Date?
 

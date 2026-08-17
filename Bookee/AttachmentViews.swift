@@ -239,7 +239,7 @@ struct AttachmentViewerSheet: View {
                         Image(systemName: attachment.fileType.icon)
                             .font(.system(size: 60)).foregroundStyle(.blue)
                         Text(fileNameWithoutExtension(attachment.fileName)).font(.headline)
-                        Text(attachment.fileType.displayName).font(.subheadline).foregroundStyle(.secondary)
+                        Text(attachment.fileType.displayName).font(.caption).foregroundStyle(.secondary)
                         Text("File size: \(formatBytes(attachment.data.count))").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding()

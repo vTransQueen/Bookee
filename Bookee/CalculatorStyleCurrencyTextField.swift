@@ -78,6 +78,7 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
     var autocapitalizationType: UITextAutocapitalizationType = .words
     var frameWidth: CGFloat? = nil
     var returnKeyType: UIReturnKeyType? = nil
+    var maxLength: Int? = nil
 
     func makeUIView(context: Context) -> UITextField {
         let textField = CursorAtEndUITextField()
@@ -123,6 +124,7 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
         uiView.returnKeyType = returnKeyType ?? .default
         context.coordinator.frameWidth = frameWidth
         context.coordinator.shouldDismissKeyboard = shouldDismissKeyboard
+        context.coordinator.maxLength = maxLength
     }
 
     func makeCoordinator() -> Coordinator {
@@ -135,6 +137,7 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
         weak var textField: UITextField?
         var frameWidth: CGFloat? = nil
         var shouldDismissKeyboard: Bool = true
+        var maxLength: Int? = nil
 
         init(text: Binding<String>, onCommit: @escaping () -> Void) {
             _text = text
@@ -143,7 +146,11 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
 
         @objc func dismissKeyboard() { _ = textField?.resignFirstResponder() }
 
-        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool { true }
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            guard let maxLength else { return true }
+            let current = (textField.text ?? "") as NSString
+            return current.replacingCharacters(in: range, with: string).count <= maxLength
+        }
 
         @objc func textFieldDidChange(_ textField: UITextField) {
             if let t = textField.text { self.text = t }
@@ -206,6 +213,10 @@ extension CursorAtEndTextField_SwiftUI {
 
     func toolbarDoneButton(triggersCommit shouldTrigger: Bool) -> Self {
         var view = self; view.toolbarDoneTriggersCommit = shouldTrigger; return view
+    }
+
+    func maxLength(_ length: Int) -> Self {
+        var view = self; view.maxLength = length; return view
     }
 }
 

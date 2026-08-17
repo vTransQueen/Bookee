@@ -49,8 +49,6 @@ struct ContentView: View {
     // Sorted (but not filtered) list — used by CRUD actions that need the full set.
     private var sortedBooks: [Book] {
         switch sortOrder {
-        case .manual:
-            return allNonDeletedBooks.sorted { $0.manualSortOrder < $1.manualSortOrder }
         case .alphabetical:
             return allNonDeletedBooks.sorted {
                 $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending
@@ -180,7 +178,7 @@ struct ContentView: View {
                                 ForEach(filteredBooks) { book in
                                     bookRow(for: book)
                                 }
-                                .onMove(perform: isFiltering || sortOrder != .manual ? nil : { moveBooks(from: $0, to: $1) })
+                                .onMove(perform: nil)
                             } header: {
                                 if !sortedBooks.isEmpty {
                                     if isFiltering {
@@ -433,13 +431,6 @@ struct ContentView: View {
 
     // MARK: - Actions
 
-    private func moveBooks(from source: IndexSet, to destination: Int) {
-        guard sortOrder == .manual else { return }
-        var reordered = sortedBooks
-        reordered.move(fromOffsets: source, toOffset: destination)
-        for (index, book) in reordered.enumerated() { book.manualSortOrder = index }
-        persistContext()
-    }
 
     private func deleteSelectedBooks() {
         for id in selectedBooks {

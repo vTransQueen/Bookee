@@ -47,32 +47,57 @@ struct BookRowView: View {
                 coverThumbnail
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(book.displayTitle)
+                    Text(book.seriesName.map { "\($0): \(book.displayTitle)" } ?? book.displayTitle)
                         .font(.headline)
                         .lineLimit(1)
 
-                    if !book.author.isEmpty {
-                        Text(book.author)
-                            .font(.subheadline)
+                    HStack(spacing: 6) {
+                        Text(book.author.isEmpty ? "Unknown Author" : book.author)
+                            .font(.caption)
                             .lineLimit(1)
                             .foregroundStyle(.secondary)
+                        Text("•").font(.caption).foregroundStyle(.secondary)
+                        if let number = book.seriesNumber {
+                            if let total = book.seriesTotalCount {
+                                Text("Book \(number)/\(total)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("Book \(number)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
 
                     HStack(spacing: 6) {
-                        Image(systemName: book.status.icon)
-                            .font(.subheadline)
-                            .foregroundStyle(statusColor)
+                        if let format = book.bookFormat {
+                            Text(format.rawValue)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("•").font(.caption).foregroundStyle(.secondary)
+                        }
+
+                        if let ownership = book.ownership {
+                            Text(ownership.rawValue)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("•").font(.caption).foregroundStyle(.secondary)
+                        }
+
                         Text(book.status.rawValue)
-                            .font(.subheadline)
+                            .font(.caption)
                             .foregroundStyle(statusColor)
 
-                        Text("•").font(.subheadline).foregroundStyle(.secondary)
-                        HStack(spacing: 1) {
-                            ForEach(1...5, id: \.self) { star in
-                                Image(systemName: star <= (book.rating ?? 0) ? "star.fill" : "star")
-                                    .font(.subheadline)
-                                    .foregroundStyle(star <= (book.rating ?? 0) ? highlightColor : Color.secondary)
-                            }
+                        Text("•").font(.caption).foregroundStyle(.secondary)
+                        if let rating = book.rating, rating > 0 {
+                            Text("\(rating)/5 Stars")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Unrated")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
