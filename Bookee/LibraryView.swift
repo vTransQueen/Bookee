@@ -28,6 +28,7 @@ struct LibraryView: View {
     @State private var bookToDelete: Book?
     @State private var navigationStateManager = NavigationStateManager.shared
     @State private var isCurrentlyViewingSettings = false
+    @State private var editSheetSubPickerActive = false
 
     // Filter state
     @State private var filterStatus: ReadingStatus? = nil
@@ -263,38 +264,10 @@ struct LibraryView: View {
                     selectedBookForEdit = nil
                     isEditingDuplicatedBook = false
                     originalDuplicatedBookTitle = ""
+                    editSheetSubPickerActive = false
                 }}
             )) {
-                if let book = selectedBookForEdit {
-                    NavigationStack {
-                        AddEditBookView(
-                            book: book,
-                            shouldFocusOnTitle: isEditingDuplicatedBook,
-                            isEditingDuplicatedBook: isEditingDuplicatedBook,
-                            originalDuplicatedBookTitle: originalDuplicatedBookTitle,
-                            onSave: {
-                                if isEditingDuplicatedBook {
-                                    book.isUnsavedDuplicate = false
-                                    persistContext()
-                                }
-                                selectedBookForEdit = nil
-                                isEditingDuplicatedBook = false
-                                originalDuplicatedBookTitle = ""
-                            },
-                            onCancel: {
-                                if isEditingDuplicatedBook {
-                                    modelContext.delete(book)
-                                    persistContext()
-                                }
-                                selectedBookForEdit = nil
-                                isEditingDuplicatedBook = false
-                                originalDuplicatedBookTitle = ""
-                            }
-                        )
-                    }
-                    .standardSheetPresentation()
-                    .interactiveDismissDisabled(isEditingDuplicatedBook)
-                }
+                editSheetContent
             }
             .sheet(isPresented: $showingFilterSheet) {
                 FilterOptionsSheet(
@@ -322,8 +295,7 @@ struct LibraryView: View {
             .background {
                 AlertContainer {
                     Color.clear
-                        .alert(bookToDelete != nil ? "Delete Book?" : "Delete Selected Books?",
-                               isPresented: $showingDeleteConfirmation) {
+                        .alert(deleteAlertTitle, isPresented: $showingDeleteConfirmation) {
                             Button("Cancel", role: .cancel) { bookToDelete = nil }
                             Button("Delete", role: .destructive) {
                                 if let book = bookToDelete {
@@ -334,17 +306,49 @@ struct LibraryView: View {
                                 }
                             }
                         } message: {
-                            if let book = bookToDelete {
-                                Text("This will move '\(book.displayTitle)' to the trash. You can restore it within 30 days.")
-                            } else {
-                                let count = selectedBooks.count
-                                Text("This will move \(count) book\(count == 1 ? "" : "s") to the trash. You can restore them within 30 days.")
-                            }
+                            Text(deleteAlertMessage)
                         }
                 }
             }
             .onAppear {}
             }
+        }
+    }
+
+    // MARK: - Edit Sheet
+
+    @ViewBuilder
+    private var editSheetContent: some View {
+        if let book = selectedBookForEdit {
+            NavigationStack {
+                AddEditBookView(
+                    book: book,
+                    shouldFocusOnTitle: isEditingDuplicatedBook,
+                    isEditingDuplicatedBook: isEditingDuplicatedBook,
+                    originalDuplicatedBookTitle: originalDuplicatedBookTitle,
+                    onSave: {
+                        if isEditingDuplicatedBook {
+                            book.isUnsavedDuplicate = false
+                            persistContext()
+                        }
+                        selectedBookForEdit = nil
+                        isEditingDuplicatedBook = false
+                        originalDuplicatedBookTitle = ""
+                    },
+                    onCancel: {
+                        if isEditingDuplicatedBook {
+                            modelContext.delete(book)
+                            persistContext()
+                        }
+                        selectedBookForEdit = nil
+                        isEditingDuplicatedBook = false
+                        originalDuplicatedBookTitle = ""
+                    },
+                    isSubPickerActive: $editSheetSubPickerActive
+                )
+            }
+            .standardSheetPresentation()
+            .interactiveDismissDisabled(isEditingDuplicatedBook || editSheetSubPickerActive)
         }
     }
 
@@ -437,6 +441,19 @@ struct LibraryView: View {
                     Label("Add Book", systemImage: "plus")
                 }.tint(.primary)
             }
+        }
+    }
+
+    private var deleteAlertTitle: String {
+        bookToDelete != nil ? "Delete Book?" : "Delete Selected Books?"
+    }
+
+    private var deleteAlertMessage: String {
+        if let book = bookToDelete {
+            return "This will move '\(book.displayTitle)' to the trash. You can restore it within 30 days."
+        } else {
+            let count = selectedBooks.count
+            return "This will move \(count) book\(count == 1 ? "" : "s") to the trash. You can restore them within 30 days."
         }
     }
 

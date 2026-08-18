@@ -15,6 +15,7 @@ struct AddEditBookView: View {
     var originalDuplicatedBookTitle: String = ""
     var onSave: (() -> Void)? = nil
     var onCancel: (() -> Void)? = nil
+    var isSubPickerActive: Binding<Bool> = .constant(false)
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -39,13 +40,14 @@ struct AddEditBookView: View {
     @State private var seriesNumber: Int
     @State private var seriesTotalCount: Int
 
-    init(book: Book, shouldFocusOnTitle: Bool = false, isEditingDuplicatedBook: Bool = false, originalDuplicatedBookTitle: String = "", onSave: (() -> Void)? = nil, onCancel: (() -> Void)? = nil) {
+    init(book: Book, shouldFocusOnTitle: Bool = false, isEditingDuplicatedBook: Bool = false, originalDuplicatedBookTitle: String = "", onSave: (() -> Void)? = nil, onCancel: (() -> Void)? = nil, isSubPickerActive: Binding<Bool> = .constant(false)) {
         self.book = book
         self.shouldFocusOnTitle = shouldFocusOnTitle
         self.isEditingDuplicatedBook = isEditingDuplicatedBook
         self.originalDuplicatedBookTitle = originalDuplicatedBookTitle
         self.onSave = onSave
         self.onCancel = onCancel
+        self.isSubPickerActive = isSubPickerActive
         _title = State(initialValue: book.title)
         _author = State(initialValue: book.author)
         _status = State(initialValue: book.status)
@@ -96,6 +98,8 @@ struct AddEditBookView: View {
         .onAppear {
             if shouldFocusOnTitle { focusedField = .title }
         }
+        .onChange(of: showingGenrePicker) { _, new in isSubPickerActive.wrappedValue = new || showingLocationPicker }
+        .onChange(of: showingLocationPicker) { _, new in isSubPickerActive.wrappedValue = showingGenrePicker || new }
         .navigationDestination(isPresented: $showingGenrePicker) {
             GenrePickerView(selectedGenres: $selectedGenres)
         }

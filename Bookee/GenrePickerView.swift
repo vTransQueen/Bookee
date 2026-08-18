@@ -106,32 +106,36 @@ struct GenrePickerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(true)
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { dismiss() }
-                    .tint(.primary)
-            }
-            ToolbarItem(placement: .bottomBar) {
-                HStack {
-                    Spacer()
-                    Button {
-                        newGenreName = ""
-                        showingAddAlert = true
-                    } label: { Label("Add Genre", systemImage: "plus") }
-                    .tint(.primary)
+            ToolbarItemGroup(placement: .bottomBar) {
+                Spacer()
+                Button {
+                    newGenreName = ""
+                    showingAddAlert = true
+                } label: {
+                    Image(systemName: "plus")
                 }
+                .tint(.primary)
             }
         }
-        .genreManagementAlerts(
-            newGenreName: $newGenreName,
-            showingAddAlert: $showingAddAlert,
-            onAdd: addGenre,
-            editGenreName: $editGenreName,
-            showingEditAlert: $showingEditAlert,
-            onRename: { renameGenre(from: genreToEdit, to: editGenreName) },
-            genreToDelete: $genreToDelete,
-            showingDeleteConfirmation: $showingDeleteConfirmation,
-            onDelete: { if let g = genreToDelete { deleteGenre(g) } }
-        )
+        .alert("New Genre", isPresented: $showingAddAlert) {
+            TextField("Genre Name", text: $newGenreName)
+                .textInputAutocapitalization(.words)
+            Button("Add") { addGenre() }
+            Button("Cancel", role: .cancel) { }
+        }
+        .alert("Rename Genre", isPresented: $showingEditAlert) {
+            TextField("Genre Name", text: $editGenreName)
+                .textInputAutocapitalization(.words)
+            Button("Save") { renameGenre(from: genreToEdit, to: editGenreName) }
+            Button("Cancel", role: .cancel) { }
+        }
+        .alert("Delete Genre?", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                if let g = genreToDelete { deleteGenre(g) }
+                genreToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { genreToDelete = nil }
+        }
         .tint(.primary)
     }
 

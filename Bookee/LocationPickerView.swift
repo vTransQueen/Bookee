@@ -104,32 +104,36 @@ struct LocationPickerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(true)
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { dismiss() }
-                    .tint(.primary)
-            }
-            ToolbarItem(placement: .bottomBar) {
-                HStack {
-                    Spacer()
-                    Button {
-                        newLocationName = ""
-                        showingAddAlert = true
-                    } label: { Label("Add Location", systemImage: "plus") }
-                    .tint(.primary)
+            ToolbarItemGroup(placement: .bottomBar) {
+                Spacer()
+                Button {
+                    newLocationName = ""
+                    showingAddAlert = true
+                } label: {
+                    Image(systemName: "plus")
                 }
+                .tint(.primary)
             }
         }
-        .locationManagementAlerts(
-            newLocationName: $newLocationName,
-            showingAddAlert: $showingAddAlert,
-            onAdd: addLocation,
-            editLocationName: $editLocationName,
-            showingEditAlert: $showingEditAlert,
-            onRename: { renameLocation(from: locationToEdit, to: editLocationName) },
-            locationToDelete: $locationToDelete,
-            showingDeleteConfirmation: $showingDeleteConfirmation,
-            onDelete: { if let l = locationToDelete { deleteLocation(l) } }
-        )
+        .alert("New Location", isPresented: $showingAddAlert) {
+            TextField("Location Name", text: $newLocationName)
+                .textInputAutocapitalization(.words)
+            Button("Add") { addLocation() }
+            Button("Cancel", role: .cancel) { }
+        }
+        .alert("Rename Location", isPresented: $showingEditAlert) {
+            TextField("Location Name", text: $editLocationName)
+                .textInputAutocapitalization(.words)
+            Button("Save") { renameLocation(from: locationToEdit, to: editLocationName) }
+            Button("Cancel", role: .cancel) { }
+        }
+        .alert("Delete Location?", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                if let l = locationToDelete { deleteLocation(l) }
+                locationToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { locationToDelete = nil }
+        }
         .tint(.primary)
     }
 
