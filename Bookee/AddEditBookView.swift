@@ -30,7 +30,6 @@ struct AddEditBookView: View {
     @State private var rating: Int
     @State private var selectedGenres: Set<String>
     @State private var selectedLocations: Set<String>
-    @State private var notes: String
     @State private var showingDeleteConfirmation = false
     @State private var showingGenrePicker = false
     @State private var showingLocationPicker = false
@@ -54,7 +53,6 @@ struct AddEditBookView: View {
         _rating = State(initialValue: book.rating ?? 0)
         _selectedGenres = State(initialValue: Set(book.genres))
         _selectedLocations = State(initialValue: Set(book.locations))
-        _notes = State(initialValue: book.notes ?? "")
         _ownership = State(initialValue: book.ownership ?? .unowned)
         _bookFormat = State(initialValue: book.bookFormat ?? .paperback)
         _seriesName = State(initialValue: book.seriesName ?? "")
@@ -73,7 +71,6 @@ struct AddEditBookView: View {
         Form {
             titleSection
             detailsSection
-            notesSection
         }
         .scrollDismissesKeyboard(.immediately)
         .navigationTitle("Edit Book")
@@ -276,15 +273,6 @@ struct AddEditBookView: View {
         }
     }
 
-    private var notesSection: some View {
-        Section {
-            TextEditor(text: $notes)
-                .frame(minHeight: 80)
-        } header: {
-            Text("Notes")
-        }
-    }
-
     // MARK: - Logic
 
     private func saveChanges() {
@@ -294,7 +282,6 @@ struct AddEditBookView: View {
         book.rating = rating > 0 ? rating : nil
         book.genres = Array(selectedGenres).sorted()
         book.locations = Array(selectedLocations).sorted()
-        book.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
         book.ownership = ownership
         book.bookFormat = bookFormat
         book.seriesName = seriesName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : seriesName.trimmingCharacters(in: .whitespacesAndNewlines)
