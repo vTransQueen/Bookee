@@ -10,7 +10,6 @@ import SwiftData
 
 struct SettingsView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-    @AppStorage("dateFormat") private var dateFormat: DateFormat = .abbreviated
     @AppStorage("userName") private var userName: String = ""
     @HighlightColorStorage private var highlightColor
     @AppStorage("showFooters") private var showFooters: Bool = true
@@ -23,7 +22,6 @@ struct SettingsView: View {
         Form {
             Section {
                 nameField
-                dateFormatPicker
                 Toggle(isOn: $showFooters) { Text("Footer Explanations") }
             } header: {
                 Text("General")
@@ -70,17 +68,6 @@ struct SettingsView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { if !isUserNameFocused { isUserNameFocused = true } }
-    }
-
-    private var dateFormatPicker: some View {
-        Picker(selection: $dateFormat) {
-            ForEach(DateFormat.allCases, id: \.self) { format in
-                Text(format.rawValue).tag(format)
-            }
-        } label: {
-            Text("Date Format")
-        }
-        .pickerStyle(.menu)
     }
 
     private var appearancePicker: some View {

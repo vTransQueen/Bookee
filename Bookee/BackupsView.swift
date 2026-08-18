@@ -69,7 +69,7 @@ struct BackupsView: View {
                                 Text(backup.displayName)
                                     .foregroundStyle(backup.id == newlyAddedBackupID ? highlightColor : .primary)
                                 HStack(spacing: 4) {
-                                    Text("\(backup.itemCount) book\(backup.itemCount == 1 ? "" : "s")")
+                                    Text("\(backup.bookCount) book\(backup.bookCount == 1 ? "" : "s")")
                                         .font(.caption).foregroundStyle(.secondary)
                                     Text("•").font(.caption).foregroundStyle(.secondary)
                                     Text(formatBackupSize(backup))
@@ -171,7 +171,7 @@ struct BackupsView: View {
                             if let b = selectedBackup { restoreBackup(b) }
                         }
                     } message: {
-                        Text("Restore \(selectedBackup?.itemCount ?? 0) book(s) from \(selectedBackup?.displayName ?? "")? This will replace all current data.")
+                        Text("Restore \(selectedBackup?.bookCount ?? 0) book(s) from \(selectedBackup?.displayName ?? "")? This will replace all current data.")
                     }
                     .alert("Restore Successful", isPresented: $showingRestoreSuccess) {
                         Button("OK", role: .cancel) { }
@@ -262,7 +262,7 @@ struct BackupsView: View {
     private func restoreBackup(_ backup: Backup) {
         let (_, corrupted, details) = BackupManager.shared.validateBackup(backup)
         if corrupted > 0 {
-            corruptionWarningMessage = "This backup contains \(corrupted) corrupted item(s). Corrupted data will be skipped:\n\n" + details.joined(separator: "\n")
+            corruptionWarningMessage = "This backup contains \(corrupted) corrupted book(s). Corrupted data will be skipped:\n\n" + details.joined(separator: "\n")
             showingCorruptionWarning = true
         } else {
             performRestore(backup)

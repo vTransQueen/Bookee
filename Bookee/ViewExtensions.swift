@@ -77,7 +77,7 @@ extension View {
 
 extension Notification.Name {
     static let genreRenamed   = Notification.Name("GenreRenamed")
-    static let highlightNewItem = Notification.Name("HighlightNewItem")
+    static let highlightNewBook = Notification.Name("HighlightNewItem")
 }
 
 // MARK: - Destructive Delete Alert

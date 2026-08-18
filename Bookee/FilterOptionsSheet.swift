@@ -16,7 +16,7 @@ struct FilterOptionsSheet: View {
     @AppStorage("showFooters") private var showFooters: Bool = true
     @HighlightColorStorage private var highlightColor
 
-    private var genres: [String] { storedGenres.asCategories }
+    private var genres: [String] { storedGenres.asStringList }
 
     private var isFiltering: Bool {
         filterStatus != nil || filterGenre != nil || filterRating != nil

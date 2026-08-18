@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  LibraryView.swift
 //  Bookee
 //
 //  Created by Kara Eveland on 2/14/26.
@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 /// Main library view — lists all books, enables add/edit/duplicate/delete and navigation to book detail.
-struct ContentView: View {
+struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
 
     @Query(filter: #Predicate<Book> { $0.deletedDate == nil })
@@ -36,14 +36,13 @@ struct ContentView: View {
     @State private var showingFilterSheet = false
 
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-    @AppStorage("dateFormat") private var dateFormat: DateFormat = .abbreviated
     @AppStorage("sortOrder") private var sortOrder: SortOrder = .alphabetical
     @AppStorage("userName") private var userName: String = ""
     @HighlightColorStorage private var highlightColor
     @AppStorage("showFooters") private var showFooters: Bool = true
 
     private func persistContext() {
-        modelContext.saveWithLogging("ContentView: Context saved")
+        modelContext.saveWithLogging("LibraryView: Context saved")
     }
 
     // Sorted (but not filtered) list — used by CRUD actions that need the full set.
@@ -357,7 +356,6 @@ struct ContentView: View {
             book: book,
             isSelecting: isSelecting,
             isSelected: selectedBooks.contains(book.persistentModelID),
-            dateFormat: dateFormat,
             highlightColor: highlightColor,
             onToggleSelection: { selectedBooks.toggle(book.persistentModelID) },
             onEdit: { selectedBookForEdit = book },
@@ -497,6 +495,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    LibraryView()
         .modelContainer(for: Book.self, inMemory: true)
 }

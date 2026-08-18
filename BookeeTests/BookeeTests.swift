@@ -121,28 +121,28 @@ struct BookModelTests {
 @Suite("Genre Helpers Tests")
 struct GenreHelpersTests {
 
-    @Test("asCategories decodes valid JSON string")
-    func testAsCategoriesDecodeValid() {
+    @Test("asStringList decodes valid JSON string")
+    func testAsStringListDecodeValid() {
         let json = "[\"Fantasy\",\"Sci-Fi\",\"Thriller\"]"
-        let categories = json.asCategories
-        #expect(categories.count == 3)
-        #expect(categories[0] == "Fantasy")
-        #expect(categories[1] == "Sci-Fi")
-        #expect(categories[2] == "Thriller")
+        let genres = json.asStringList
+        #expect(genres.count == 3)
+        #expect(genres[0] == "Fantasy")
+        #expect(genres[1] == "Sci-Fi")
+        #expect(genres[2] == "Thriller")
     }
 
-    @Test("asCategories returns empty array for invalid JSON")
-    func testAsCategoriesDecodeInvalid() {
-        #expect("not json".asCategories.isEmpty)
-        #expect("".asCategories.isEmpty)
-        #expect("{}".asCategories.isEmpty)
+    @Test("asStringList returns empty array for invalid JSON")
+    func testAsStringListDecodeInvalid() {
+        #expect("not json".asStringList.isEmpty)
+        #expect("".asStringList.isEmpty)
+        #expect("{}".asStringList.isEmpty)
     }
 
     @Test("asAppStorageString encodes array to JSON")
     func testAsAppStorageStringEncodes() {
         let genres = ["Romance", "Mystery"]
         let json = genres.asAppStorageString
-        let decoded = json.asCategories
+        let decoded = json.asStringList
         #expect(decoded == genres)
     }
 
@@ -151,7 +151,7 @@ struct GenreHelpersTests {
         let json: [String] = []
         let encoded = json.asAppStorageString
         #expect(encoded == "[]")
-        #expect(encoded.asCategories.isEmpty)
+        #expect(encoded.asStringList.isEmpty)
     }
 }
 

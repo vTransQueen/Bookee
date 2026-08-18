@@ -1,5 +1,5 @@
 //
-//  BudgetHelpers.swift
+//  GenreLocationHelpers.swift
 //  Bookee
 //
 //  Genre helpers for managing genres across all books.

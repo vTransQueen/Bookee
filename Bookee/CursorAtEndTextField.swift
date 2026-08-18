@@ -1,5 +1,5 @@
 //
-//  CalculatorStyleCurrencyTextField.swift
+//  CursorAtEndTextField.swift
 //  Bookee
 //
 //  Created by Kara Eveland on 3/4/26.
@@ -85,6 +85,8 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
         textField.delegate = context.coordinator
         textField.placeholder = placeholder
         textField.borderStyle = .none
+        textField.font = UIFont.preferredFont(forTextStyle: .body)
+        textField.adjustsFontForContentSizeCategory = true
         textField.textAlignment = textAlignment
         textField.keyboardType = keyboardType
         textField.autocapitalizationType = autocapitalizationType

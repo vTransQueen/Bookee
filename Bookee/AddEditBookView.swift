@@ -97,7 +97,7 @@ struct AddEditBookView: View {
             if shouldFocusOnTitle { focusedField = .title }
         }
         .navigationDestination(isPresented: $showingGenrePicker) {
-            CategoryPickerView(selectedGenres: $selectedGenres)
+            GenrePickerView(selectedGenres: $selectedGenres)
         }
         .navigationDestination(isPresented: $showingLocationPicker) {
             LocationPickerView(selectedLocations: $selectedLocations)

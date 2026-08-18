@@ -94,10 +94,10 @@ struct LocationPickerView: View {
             }
         }
         .onAppear {
-            locations = storedLocations.asCategories
+            locations = storedLocations.asStringList
         }
         .onChange(of: storedLocations) { _, newValue in
-            let updated = newValue.asCategories
+            let updated = newValue.asStringList
             if updated != locations { locations = updated }
         }
         .navigationTitle("Locations")
@@ -136,7 +136,7 @@ struct LocationPickerView: View {
     private func addLocation() {
         let trimmed = newLocationName.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
         guard !trimmed.isEmpty else { return }
-        var list = storedLocations.asCategories
+        var list = storedLocations.asStringList
         if !list.contains(trimmed) {
             list.append(trimmed)
             storedLocations = list.asAppStorageString
@@ -148,7 +148,7 @@ struct LocationPickerView: View {
     private func renameLocation(from old: String, to new: String) {
         let trimmed = new.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
         guard !trimmed.isEmpty, trimmed != old else { return }
-        var list = storedLocations.asCategories
+        var list = storedLocations.asStringList
         if let index = list.firstIndex(of: old) {
             list[index] = trimmed
             storedLocations = list.asAppStorageString
@@ -161,7 +161,7 @@ struct LocationPickerView: View {
     }
 
     private func deleteLocation(_ location: String) {
-        var list = storedLocations.asCategories
+        var list = storedLocations.asStringList
         list.removeAll { $0 == location }
         storedLocations = list.asAppStorageString
         selectedLocations.remove(location)

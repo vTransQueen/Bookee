@@ -26,40 +26,6 @@ enum AppearanceMode: String, CaseIterable, Codable {
     }
 }
 
-/// Defines date formatting options with example displays as raw values.
-enum DateFormat: String, CaseIterable, Codable {
-    case short = "02/15/26"
-    case numericPadded = "02/15/2026"
-    case abbreviated = "Feb 15, 2026"
-    case long = "February 15, 2026"
-
-    var style: Date.FormatStyle {
-        switch self {
-        case .long:
-            return .init(date: .long, time: .omitted)
-        case .abbreviated:
-            return .init(date: .abbreviated, time: .omitted)
-        case .numericPadded:
-            return .init().month(.twoDigits).day(.twoDigits).year(.defaultDigits)
-        case .short:
-            return .init().month(.twoDigits).day(.twoDigits).year(.twoDigits)
-        }
-    }
-
-    var styleWithTime: Date.FormatStyle {
-        switch self {
-        case .long:
-            return .init(date: .long, time: .shortened)
-        case .abbreviated:
-            return .init(date: .abbreviated, time: .shortened)
-        case .numericPadded:
-            return .init().month(.twoDigits).day(.twoDigits).year(.defaultDigits).hour().minute()
-        case .short:
-            return .init().month(.twoDigits).day(.twoDigits).year(.twoDigits).hour().minute()
-        }
-    }
-}
-
 /// Defines sorting options for books in the library.
 enum SortOrder: String, CaseIterable, Codable {
     case alphabetical = "Title"
@@ -70,13 +36,13 @@ enum SortOrder: String, CaseIterable, Codable {
     case authorAlphabetical = "Author"
 }
 
-// MARK: - Genre / Category Helpers
+// MARK: - Genre / String-List Helpers
 
 extension String {
-    var asCategories: [String] {
+    var asStringList: [String] {
         guard let data = data(using: .utf8),
-              let categories = try? JSONDecoder().decode([String].self, from: data) else { return [] }
-        return categories
+              let list = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        return list
     }
 }
 
@@ -94,7 +60,6 @@ extension Array where Element == String {
 enum SettingsKey {
     static let highlightColorHex = "highlightColorHex"
     static let showFooters = "showFooters"
-    static let dateFormat = "dateFormat"
     static let sortOrder = "sortOrder"
     static let appearanceMode = "appearanceMode"
     static let userName = "userName"
@@ -108,7 +73,7 @@ enum SettingsDefault {
     static let highlightColorHex = "FF7EB5"
     static let showFooters = true
     /// Sentinel value used to represent "no genre assigned" in filter logic.
-    static let uncategorizedSentinel = "__Uncategorized__"
+    static let noGenreSentinel = "__Uncategorized__"
 }
 
 // MARK: - Highlight Color Storage

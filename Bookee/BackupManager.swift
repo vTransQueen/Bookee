@@ -11,7 +11,7 @@ import SwiftData
 // MARK: - Backup Data Structures
 
 /// Flat mirror of Book for JSON backup storage.
-struct BackupItem: Codable, Equatable {
+struct BackupBook: Codable, Equatable {
     let timestamp: Date
     let lastModifiedDate: Date
     let title: String
@@ -29,7 +29,7 @@ struct BackupItem: Codable, Equatable {
     let attachmentsData: Data?
     let coverImageData: Data?
 
-    static func == (lhs: BackupItem, rhs: BackupItem) -> Bool {
+    static func == (lhs: BackupBook, rhs: BackupBook) -> Bool {
         lhs.timestamp == rhs.timestamp &&
         lhs.lastModifiedDate == rhs.lastModifiedDate &&
         lhs.title == rhs.title &&
@@ -52,7 +52,7 @@ struct BackupItem: Codable, Equatable {
 /// App-level settings snapshot included in each backup.
 struct BackupAppSettings: Codable {
     let appearanceMode: String?
-    let dateFormat: String?
+    let dateFormat: String?  // retained for decoding legacy backup files
     let sortOrder: String?
     let userName: String?
     let highlightColorHex: String?
@@ -66,9 +66,17 @@ struct BackupAppSettings: Codable {
 struct Backup: Codable, Identifiable {
     let id: UUID
     let date: Date
-    let itemCount: Int
-    let items: [BackupItem]
+    let bookCount: Int
+    let books: [BackupBook]
     let appSettings: BackupAppSettings?
+
+    /// Preserves the on-disk JSON keys ("itemCount", "items") so existing backup files continue to decode.
+    enum CodingKeys: String, CodingKey {
+        case id, date
+        case bookCount = "itemCount"
+        case books = "items"
+        case appSettings
+    }
 
     var displayName: String {
         let formatter = DateFormatter()
@@ -102,8 +110,8 @@ class BackupManager {
 
     func createBackup(books: [Book], force: Bool = false) {
         do {
-            let backupItems = books.map { book in
-                BackupItem(
+            let backupBooks = books.map { book in
+                BackupBook(
                     timestamp: book.timestamp,
                     lastModifiedDate: book.lastModifiedDate,
                     title: book.title,
@@ -123,7 +131,7 @@ class BackupManager {
                 )
             }
 
-            if !force && !hasDataChanged(newBackupItems: backupItems) {
+            if !force && !hasDataChanged(newBackupBooks: backupBooks) {
                 print("⏭️ Skipping backup - no data changes detected")
                 return
             }
@@ -131,7 +139,7 @@ class BackupManager {
             let ud = UserDefaults.standard
             let settings = BackupAppSettings(
                 appearanceMode: ud.string(forKey: "appearanceMode"),
-                dateFormat: ud.string(forKey: "dateFormat"),
+                dateFormat: nil,
                 sortOrder: ud.string(forKey: "sortOrder"),
                 userName: ud.string(forKey: "userName"),
                 highlightColorHex: ud.string(forKey: "highlightColorHex"),
@@ -144,8 +152,8 @@ class BackupManager {
             let backup = Backup(
                 id: UUID(),
                 date: Date(),
-                itemCount: books.count,
-                items: backupItems,
+                bookCount: books.count,
+                books: backupBooks,
                 appSettings: settings
             )
 
@@ -217,34 +225,34 @@ class BackupManager {
 
         var restoredCount = 0
 
-        for backupItem in backup.items {
+        for backupBook in backup.books {
             let book = Book(
-                timestamp: backupItem.timestamp,
-                title: backupItem.title,
-                author: backupItem.author,
-                manualSortOrder: backupItem.manualSortOrder,
-                status: ReadingStatus(rawValue: backupItem.status) ?? .toRead
+                timestamp: backupBook.timestamp,
+                title: backupBook.title,
+                author: backupBook.author,
+                manualSortOrder: backupBook.manualSortOrder,
+                status: ReadingStatus(rawValue: backupBook.status) ?? .toRead
             )
-            book.lastModifiedDate = backupItem.lastModifiedDate
-            book.rating = backupItem.rating
-            book.pageCount = backupItem.pageCount
-            book.currentPage = backupItem.currentPage
-            book.dateStarted = backupItem.dateStarted
-            book.dateFinished = backupItem.dateFinished
-            book.genresData = backupItem.genresData
-            book.notes = backupItem.notes
-            book.deletedDate = backupItem.deletedDate
+            book.lastModifiedDate = backupBook.lastModifiedDate
+            book.rating = backupBook.rating
+            book.pageCount = backupBook.pageCount
+            book.currentPage = backupBook.currentPage
+            book.dateStarted = backupBook.dateStarted
+            book.dateFinished = backupBook.dateFinished
+            book.genresData = backupBook.genresData
+            book.notes = backupBook.notes
+            book.deletedDate = backupBook.deletedDate
             book.attachmentsData = validateOrClear(
-                backupItem.attachmentsData,
+                backupBook.attachmentsData,
                 as: [Attachment].self,
                 label: "attachments",
-                itemName: backupItem.title
+                itemName: backupBook.title
             )
-            book.coverImageData = backupItem.coverImageData
+            book.coverImageData = backupBook.coverImageData
 
             modelContext.insert(book)
             restoredCount += 1
-            print("✅ Restored book '\(backupItem.title)'")
+            print("✅ Restored book '\(backupBook.title)'")
         }
 
         try modelContext.save()
@@ -253,7 +261,6 @@ class BackupManager {
         if let settings = backup.appSettings {
             let ud = UserDefaults.standard
             if let v = settings.appearanceMode        { ud.set(v, forKey: "appearanceMode") }
-            if let v = settings.dateFormat            { ud.set(v, forKey: "dateFormat") }
             if let v = settings.sortOrder             { ud.set(v, forKey: "sortOrder") }
             if let v = settings.userName              { ud.set(v, forKey: "userName") }
             if let v = settings.highlightColorHex     { ud.set(v, forKey: "highlightColorHex") }
@@ -285,10 +292,10 @@ class BackupManager {
     func validateBackup(_ backup: Backup) -> (valid: Int, corrupted: Int, details: [String]) {
         var validItems = 0, corruptedItems = 0
         var corruptedDetails: [String] = []
-        for item in backup.items {
-            if let d = item.attachmentsData, !validateJSONData(d, as: [Attachment].self) {
+        for book in backup.books {
+            if let d = book.attachmentsData, !validateJSONData(d, as: [Attachment].self) {
                 corruptedItems += 1
-                let name = item.title.isEmpty ? "Untitled" : item.title
+                let name = book.title.isEmpty ? "Untitled" : book.title
                 corruptedDetails.append("\(name): corrupted attachments")
             } else {
                 validItems += 1
@@ -310,12 +317,12 @@ class BackupManager {
         (try? JSONDecoder().decode(type, from: data)) != nil
     }
 
-    private func hasDataChanged(newBackupItems: [BackupItem]) -> Bool {
+    private func hasDataChanged(newBackupBooks: [BackupBook]) -> Bool {
         let existingBackups = loadBackups()
         guard let mostRecentBackup = existingBackups.first else { return true }
-        if newBackupItems.count != mostRecentBackup.items.count { return true }
-        let sortedNew = newBackupItems.sorted { $0.timestamp < $1.timestamp }
-        let sortedOld = mostRecentBackup.items.sorted { $0.timestamp < $1.timestamp }
+        if newBackupBooks.count != mostRecentBackup.books.count { return true }
+        let sortedNew = newBackupBooks.sorted { $0.timestamp < $1.timestamp }
+        let sortedOld = mostRecentBackup.books.sorted { $0.timestamp < $1.timestamp }
         for (new, old) in zip(sortedNew, sortedOld) {
             if new != old { return true }
         }

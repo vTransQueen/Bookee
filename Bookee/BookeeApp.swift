@@ -44,43 +44,25 @@ struct BookeeApp: App {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             print("✅ ModelContainer created successfully")
             return container
-        } catch let error as NSError {
+        } catch {
+            // Do NOT delete the database — silently wiping it would destroy user data.
+            // Fall back to in-memory so the app stays open; the on-disk file is preserved
+            // and can be recovered manually or via the in-app Backups screen.
             print("❌ Error creating ModelContainer: \(error.localizedDescription)")
-            print("🔄 Attempting to recover by removing existing store...")
-
-            let fileManager = FileManager.default
-            let storeDirectory = modelConfiguration.url.deletingLastPathComponent()
-
-            if let files = try? fileManager.contentsOfDirectory(at: storeDirectory, includingPropertiesForKeys: nil) {
-                for file in files {
-                    if file.lastPathComponent.hasPrefix("default") ||
-                       file.pathExtension == "sqlite" ||
-                       file.pathExtension == "sqlite-shm" ||
-                       file.pathExtension == "sqlite-wal" {
-                        try? fileManager.removeItem(at: file)
-                    }
-                }
-            }
-
+            print("⚠️ Your data file is preserved at: \(storeURL.path)")
+            print("⚠️ Running in-memory only — changes will not be saved until relaunch resolves the error.")
+            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             do {
-                let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
-                print("✅ ModelContainer successfully recreated after cleanup")
-                return container
+                return try ModelContainer(for: schema, configurations: [memoryConfig])
             } catch {
-                print("⚠️ Creating temporary in-memory container as fallback")
-                let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                do {
-                    return try ModelContainer(for: schema, configurations: [memoryConfig])
-                } catch {
-                    fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
-                }
+                fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
             }
         }
     }()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LibraryView()
                 .preferredColorScheme(appearanceMode.colorScheme)
                 .tint(highlightColor)
                 .dynamicTypeSize(.xLarge)

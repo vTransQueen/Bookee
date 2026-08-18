@@ -1,5 +1,5 @@
 //
-//  CategoryPickerView.swift
+//  GenrePickerView.swift
 //  Bookee
 //
 //  Genre picker for selecting and managing genres on a book.
@@ -10,7 +10,7 @@ import SwiftData
 
 // MARK: - Genre Picker View
 
-struct CategoryPickerView: View {
+struct GenrePickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Binding var selectedGenres: Set<String>
@@ -96,10 +96,10 @@ struct CategoryPickerView: View {
             }
         }
         .onAppear {
-            genres = storedGenres.asCategories
+            genres = storedGenres.asStringList
         }
         .onChange(of: storedGenres) { _, newValue in
-            let updated = newValue.asCategories
+            let updated = newValue.asStringList
             if updated != genres { genres = updated }
         }
         .navigationTitle("Genres")
@@ -138,7 +138,7 @@ struct CategoryPickerView: View {
     private func addGenre() {
         let trimmed = newGenreName.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
         guard !trimmed.isEmpty else { return }
-        var list = storedGenres.asCategories
+        var list = storedGenres.asStringList
         if !list.contains(trimmed) {
             list.append(trimmed)
             storedGenres = list.asAppStorageString
@@ -150,7 +150,7 @@ struct CategoryPickerView: View {
     private func renameGenre(from old: String, to new: String) {
         let trimmed = new.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
         guard !trimmed.isEmpty, trimmed != old else { return }
-        var list = storedGenres.asCategories
+        var list = storedGenres.asStringList
         if let index = list.firstIndex(of: old) {
             list[index] = trimmed
             storedGenres = list.asAppStorageString
@@ -168,7 +168,7 @@ struct CategoryPickerView: View {
     }
 
     private func deleteGenre(_ genre: String) {
-        var list = storedGenres.asCategories
+        var list = storedGenres.asStringList
         list.removeAll { $0 == genre }
         storedGenres = list.asAppStorageString
         selectedGenres.remove(genre)

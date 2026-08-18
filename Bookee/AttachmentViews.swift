@@ -57,7 +57,7 @@ private func formatBytes(_ bytes: Int) -> String {
     ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
 }
 
-private struct ShareItem: Identifiable {
+private struct ShareableFile: Identifiable {
     let id = UUID()
     let url: URL
 }
@@ -219,7 +219,7 @@ struct AttachmentRowView: View {
 struct AttachmentViewerSheet: View {
     @Environment(\.dismiss) private var dismiss
     let attachment: Attachment
-    @State private var shareItem: ShareItem?
+    @State private var shareableFile: ShareableFile?
 
     var body: some View {
         NavigationStack {
@@ -256,12 +256,12 @@ struct AttachmentViewerSheet: View {
                 }
             }
         }
-        .sheet(item: $shareItem) { item in ShareSheet(items: [item.url]) }
+        .sheet(item: $shareableFile) { item in ShareSheet(items: [item.url]) }
     }
 
     private func shareAttachment() {
         if let url = prepareShareURL(fileName: attachment.fileName, data: attachment.data) {
-            shareItem = ShareItem(url: url)
+            shareableFile = ShareableFile(url: url)
         }
     }
 }

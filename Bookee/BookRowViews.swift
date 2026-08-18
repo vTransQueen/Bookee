@@ -1,5 +1,5 @@
 //
-//  ItemRowViews.swift
+//  BookRowViews.swift
 //  Bookee
 //
 //  Reusable row views for displaying books in lists.
@@ -28,7 +28,6 @@ struct BookRowView: View {
     let book: Book
     let isSelecting: Bool
     let isSelected: Bool
-    let dateFormat: DateFormat
     let highlightColor: Color
     let onToggleSelection: () -> Void
     let onEdit: () -> Void
@@ -48,7 +47,7 @@ struct BookRowView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "book.closed")
                             .font(.headline)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.secondary)
                         Text(book.seriesName.map { "\($0): \(book.displayTitle)" } ?? book.displayTitle)
                             .font(.headline)
                             .lineLimit(1)
