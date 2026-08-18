@@ -469,10 +469,6 @@ struct LibraryView: View {
             status: book.status
         )
         dup.rating = book.rating
-        dup.pageCount = book.pageCount
-        dup.currentPage = nil
-        dup.dateStarted = nil
-        dup.dateFinished = nil
         dup.genresData = book.genresData
         dup.notes = book.notes
         dup.coverImageData = book.coverImageData

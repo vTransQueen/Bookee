@@ -77,16 +77,3 @@ func updateBooksForDeletedLocation(_ location: String, modelContext: ModelContex
         modelContext.saveWithLogging("Removed location '\(location)' from books")
     }
 }
-
-/// Returns a dictionary mapping each genre name to the number of non-deleted books that have it.
-func buildGenreCounts(modelContext: ModelContext) -> [String: Int] {
-    let descriptor = FetchDescriptor<Book>(predicate: #Predicate { $0.deletedDate == nil })
-    guard let books = try? modelContext.fetch(descriptor) else { return [:] }
-    var counts: [String: Int] = [:]
-    for book in books {
-        for genre in book.genres {
-            counts[genre, default: 0] += 1
-        }
-    }
-    return counts
-}

@@ -34,26 +34,6 @@ struct BookModelTests {
         }
     }
 
-    @Test("Book reading progress calculation")
-    func testReadingProgress() {
-        let book = Book(timestamp: Date(), title: "Test", author: "Author")
-        #expect(book.readingProgress == nil)
-
-        book.pageCount = 200
-        #expect(book.readingProgress == nil) // currentPage still nil
-
-        book.currentPage = 100
-        let progress = book.readingProgress
-        #expect(progress != nil)
-        #expect(progress! == 0.5)
-
-        book.currentPage = 200
-        #expect(book.readingProgress == 1.0)
-
-        book.currentPage = 250 // beyond total — clamps to 1.0
-        #expect(book.readingProgress == 1.0)
-    }
-
     @Test("Book genres round-trip through JSON storage")
     func testGenresRoundTrip() {
         let book = Book(timestamp: Date(), title: "Test", author: "Author")

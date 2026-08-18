@@ -56,26 +56,6 @@ struct EmptyStatePlaceholder: View {
     }
 }
 
-// MARK: - Year Picker Menu
-
-/// A compact Menu that lets the user pick a year from the past 25 years.
-struct YearPickerMenu: View {
-    @Binding var selectedYear: Int
-    var label: String = "Year"
-
-    var body: some View {
-        let currentYear = Date().year
-        let startYear = currentYear - 24
-        Menu {
-            ForEach((startYear...currentYear).reversed(), id: \.self) { year in
-                Button(String(year)) { selectedYear = year }
-            }
-        } label: {
-            Text(String(selectedYear))
-        }
-    }
-}
-
 // MARK: - Alphabet Scroller
 
 /// A vertical strip of letter buttons used as an index scroller alongside an alphabetically-sorted list.
@@ -114,36 +94,5 @@ struct AlphabetScroller: View {
                 }
                 .onEnded { _ in isDragging = false }
         )
-    }
-}
-
-// MARK: - Selection Mode Toolbar
-
-/// ToolbarContent for selection mode: Select All / Deselect All on the trailing side
-/// and a Delete button on the bottom bar.
-struct SelectionModeToolbar: ToolbarContent {
-    let selectedCount: Int
-    let totalCount: Int
-    let onSelectAll: () -> Void
-    let onDeselectAll: () -> Void
-    let onDelete: () -> Void
-    var deleteLabel: String = "Delete"
-
-    private var selectAllTitle: String {
-        selectedCount == totalCount ? "Deselect All" : "Select All"
-    }
-
-    var body: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button(selectAllTitle) {
-                if selectedCount == totalCount { onDeselectAll() } else { onSelectAll() }
-            }
-        }
-        ToolbarItem(placement: .bottomBar) {
-            Button(role: .destructive, action: onDelete) {
-                Label(deleteLabel, systemImage: "trash")
-            }
-            .disabled(selectedCount == 0)
-        }
     }
 }

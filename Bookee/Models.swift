@@ -91,10 +91,6 @@ final class Book {
     var manualSortOrder: Int
     var status: ReadingStatus
     var rating: Int?            // 0...5, nil = unrated
-    var pageCount: Int?
-    var currentPage: Int?
-    var dateStarted: Date?
-    var dateFinished: Date?
     /// JSON-encoded [String] of user-defined genres.
     var genresData: String?
     /// JSON-encoded [String] of user-defined locations.
@@ -179,11 +175,6 @@ final class Book {
         }
     }
 
-    var readingProgress: Double? {
-        guard let pageCount, pageCount > 0, let currentPage else { return nil }
-        return min(1.0, Double(currentPage) / Double(pageCount))
-    }
-
     func decodeAttachments() -> [Attachment] {
         guard let attachmentsData else { return [] }
         return (try? JSONDecoder().decode([Attachment].self, from: attachmentsData)) ?? []
@@ -233,20 +224,9 @@ enum AttachmentType: String, Codable {
     }
 }
 
-// MARK: - Attachment Base Protocol
-
-/// Common interface for all attachment types. Enables shared utility code (e.g. share sheet) to work generically.
-protocol AttachmentBase: Identifiable {
-    var id: UUID { get }
-    var data: Data { get }
-    var fileName: String { get }
-    var fileType: AttachmentType { get }
-    var dateAdded: Date { get }
-}
-
 // MARK: - Attachment Model
 
-struct Attachment: Identifiable, Equatable, Codable, AttachmentBase {
+struct Attachment: Identifiable, Equatable, Codable {
     let id: UUID
     var data: Data
     var fileName: String
@@ -261,7 +241,4 @@ struct Attachment: Identifiable, Equatable, Codable, AttachmentBase {
         self.dateAdded = dateAdded
     }
 
-    func withNewID() -> Attachment {
-        Attachment(id: UUID(), data: data, fileName: fileName, fileType: fileType, dateAdded: dateAdded)
-    }
 }

@@ -19,10 +19,6 @@ struct BackupBook: Codable, Equatable {
     let manualSortOrder: Int
     let status: String
     let rating: Int?
-    let pageCount: Int?
-    let currentPage: Int?
-    let dateStarted: Date?
-    let dateFinished: Date?
     let genresData: String?
     let notes: String?
     let deletedDate: Date?
@@ -37,10 +33,6 @@ struct BackupBook: Codable, Equatable {
         lhs.manualSortOrder == rhs.manualSortOrder &&
         lhs.status == rhs.status &&
         lhs.rating == rhs.rating &&
-        lhs.pageCount == rhs.pageCount &&
-        lhs.currentPage == rhs.currentPage &&
-        lhs.dateStarted == rhs.dateStarted &&
-        lhs.dateFinished == rhs.dateFinished &&
         lhs.genresData == rhs.genresData &&
         lhs.notes == rhs.notes &&
         lhs.deletedDate == rhs.deletedDate &&
@@ -119,10 +111,6 @@ class BackupManager {
                     manualSortOrder: book.manualSortOrder,
                     status: book.status.rawValue,
                     rating: book.rating,
-                    pageCount: book.pageCount,
-                    currentPage: book.currentPage,
-                    dateStarted: book.dateStarted,
-                    dateFinished: book.dateFinished,
                     genresData: book.genresData,
                     notes: book.notes,
                     deletedDate: book.deletedDate,
@@ -235,10 +223,6 @@ class BackupManager {
             )
             book.lastModifiedDate = backupBook.lastModifiedDate
             book.rating = backupBook.rating
-            book.pageCount = backupBook.pageCount
-            book.currentPage = backupBook.currentPage
-            book.dateStarted = backupBook.dateStarted
-            book.dateFinished = backupBook.dateFinished
             book.genresData = backupBook.genresData
             book.notes = backupBook.notes
             book.deletedDate = backupBook.deletedDate

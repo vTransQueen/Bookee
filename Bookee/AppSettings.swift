@@ -59,11 +59,6 @@ extension Array where Element == String {
 /// Canonical string keys for all @AppStorage values.
 enum SettingsKey {
     static let highlightColorHex = "highlightColorHex"
-    static let showFooters = "showFooters"
-    static let sortOrder = "sortOrder"
-    static let appearanceMode = "appearanceMode"
-    static let userName = "userName"
-    static let genres = "genres"
 }
 
 // MARK: - Settings Defaults
@@ -71,9 +66,6 @@ enum SettingsKey {
 enum SettingsDefault {
     /// Pink — matches the app-level .tint set in BookeeApp.swift.
     static let highlightColorHex = "FF7EB5"
-    static let showFooters = true
-    /// Sentinel value used to represent "no genre assigned" in filter logic.
-    static let noGenreSentinel = "__Uncategorized__"
 }
 
 // MARK: - Highlight Color Storage

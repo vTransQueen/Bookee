@@ -19,10 +19,6 @@ struct BookeeApp: App {
         Color(hex: highlightColorHex)
     }
 
-    init() {
-        restoreNavigationState()
-    }
-
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Book.self,
@@ -76,7 +72,6 @@ struct BookeeApp: App {
                 } catch {
                     print("❌ Error saving context: \(error)")
                 }
-                NavigationStateManager.shared.saveNavigationState(modelContext: sharedModelContainer.mainContext)
                 createAutomaticBackup()
             case .active:
                 cleanupOldDeletedBooks()
@@ -114,6 +109,4 @@ struct BookeeApp: App {
             print("❌ Failed to create automatic backup: \(error.localizedDescription)")
         }
     }
-
-    private func restoreNavigationState() {}
 }

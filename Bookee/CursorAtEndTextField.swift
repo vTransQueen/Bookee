@@ -10,9 +10,7 @@ import SwiftUI
 // MARK: - Keyboard Accessory View
 
 fileprivate class KeyboardAccessoryView: UIView {
-    var doneButtonAction: (() -> Void)?
     var dismissOnlyAction: (() -> Void)?
-    var toolbarDoneTriggersCommit: Bool = false
     private let toolbar = UIToolbar()
 
     override init(frame: CGRect) {
@@ -45,11 +43,7 @@ fileprivate class KeyboardAccessoryView: UIView {
     }
 
     @objc private func doneButtonTapped() {
-        if toolbarDoneTriggersCommit {
-            doneButtonAction?()
-        } else {
-            dismissOnlyAction?()
-        }
+        dismissOnlyAction?()
     }
 
     override var intrinsicContentSize: CGSize {
@@ -69,16 +63,11 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
     @Binding var text: String
     var placeholder: String = ""
     var onCommit: () -> Void = {}
-    var shouldDismissKeyboard: Bool = true
     var showKeyboardToolbar: Bool = true
-    var toolbarDoneTriggersCommit: Bool = false
 
     var textAlignment: NSTextAlignment = .natural
-    var keyboardType: UIKeyboardType = .default
     var autocapitalizationType: UITextAutocapitalizationType = .words
-    var frameWidth: CGFloat? = nil
     var returnKeyType: UIReturnKeyType? = nil
-    var maxLength: Int? = nil
 
     func makeUIView(context: Context) -> UITextField {
         let textField = CursorAtEndUITextField()
@@ -88,17 +77,11 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
         textField.font = UIFont.preferredFont(forTextStyle: .body)
         textField.adjustsFontForContentSizeCategory = true
         textField.textAlignment = textAlignment
-        textField.keyboardType = keyboardType
         textField.autocapitalizationType = autocapitalizationType
         textField.returnKeyType = returnKeyType ?? .default
 
         if showKeyboardToolbar {
             let accessoryView = KeyboardAccessoryView()
-            accessoryView.toolbarDoneTriggersCommit = toolbarDoneTriggersCommit
-            accessoryView.doneButtonAction = { [weak textField] in
-                _ = textField?.resignFirstResponder()
-                DispatchQueue.main.async { context.coordinator.onCommit() }
-            }
             accessoryView.dismissOnlyAction = { [weak textField] in
                 _ = textField?.resignFirstResponder()
             }
@@ -112,8 +95,6 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
         textField.setContentCompressionResistancePriority(.required, for: .vertical)
 
         context.coordinator.textField = textField
-        context.coordinator.frameWidth = frameWidth
-        context.coordinator.shouldDismissKeyboard = shouldDismissKeyboard
         return textField
     }
 
@@ -121,12 +102,8 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
         if uiView.text != text { uiView.text = text }
         uiView.placeholder = placeholder
         uiView.textAlignment = textAlignment
-        uiView.keyboardType = keyboardType
         uiView.autocapitalizationType = autocapitalizationType
         uiView.returnKeyType = returnKeyType ?? .default
-        context.coordinator.frameWidth = frameWidth
-        context.coordinator.shouldDismissKeyboard = shouldDismissKeyboard
-        context.coordinator.maxLength = maxLength
     }
 
     func makeCoordinator() -> Coordinator {
@@ -137,39 +114,21 @@ struct CursorAtEndTextField_SwiftUI: UIViewRepresentable {
         @Binding var text: String
         var onCommit: () -> Void
         weak var textField: UITextField?
-        var frameWidth: CGFloat? = nil
-        var shouldDismissKeyboard: Bool = true
-        var maxLength: Int? = nil
 
         init(text: Binding<String>, onCommit: @escaping () -> Void) {
             _text = text
             self.onCommit = onCommit
         }
 
-        @objc func dismissKeyboard() { _ = textField?.resignFirstResponder() }
-
-        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-            guard let maxLength else { return true }
-            let current = (textField.text ?? "") as NSString
-            return current.replacingCharacters(in: range, with: string).count <= maxLength
-        }
-
         @objc func textFieldDidChange(_ textField: UITextField) {
             if let t = textField.text { self.text = t }
         }
-
-        func textFieldDidBeginEditing(_ textField: UITextField) {}
 
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
             _ = textField.resignFirstResponder()
             DispatchQueue.main.async { [weak self] in self?.onCommit() }
             return true
         }
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextField, context: Context) -> CGSize? {
-        if let frameWidth { return CGSize(width: frameWidth, height: uiView.intrinsicContentSize.height) }
-        return nil
     }
 }
 
@@ -186,10 +145,6 @@ extension CursorAtEndTextField_SwiftUI {
         return view
     }
 
-    func keyboardType(_ type: UIKeyboardType) -> Self {
-        var view = self; view.keyboardType = type; return view
-    }
-
     func textInputAutocapitalization(_ type: TextInputAutocapitalization?) -> Self {
         var view = self
         guard let type else { view.autocapitalizationType = .words; return view }
@@ -201,24 +156,8 @@ extension CursorAtEndTextField_SwiftUI {
         return view
     }
 
-    func frame(width: CGFloat) -> Self {
-        var view = self; view.frameWidth = width; return view
-    }
-
-    func dismissKeyboardOnReturn(_ shouldDismiss: Bool) -> Self {
-        var view = self; view.shouldDismissKeyboard = shouldDismiss; return view
-    }
-
     func returnKey(_ type: UIReturnKeyType) -> Self {
         var view = self; view.returnKeyType = type; return view
-    }
-
-    func toolbarDoneButton(triggersCommit shouldTrigger: Bool) -> Self {
-        var view = self; view.toolbarDoneTriggersCommit = shouldTrigger; return view
-    }
-
-    func maxLength(_ length: Int) -> Self {
-        var view = self; view.maxLength = length; return view
     }
 }
 

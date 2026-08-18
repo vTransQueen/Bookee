@@ -18,18 +18,9 @@ class NavigationStateManager {
 
     var navigationPath = NavigationPath()
 
-    /// Whether Settings was open when the app was last backgrounded.
-    var shouldRestoreSettings: Bool = false
-
     static let navigationStateKey = "savedNavigationState"
 
-    private init() {
-        if let data = UserDefaults.standard.data(forKey: Self.navigationStateKey),
-           let state = try? JSONDecoder().decode(NavigationState.self, from: data),
-           state.isViewingSettings {
-            shouldRestoreSettings = true
-        }
-    }
+    private init() {}
 
     // MARK: - State Persistence
 
@@ -45,14 +36,8 @@ class NavigationStateManager {
         }
     }
 
-    func saveNavigationState(modelContext: ModelContext) {}
-
     func saveIsViewingSettings(_ isViewing: Bool) {
         updateState { $0.isViewingSettings = isViewing }
-    }
-
-    func clearNavigationState() {
-        UserDefaults.standard.removeObject(forKey: Self.navigationStateKey)
     }
 }
 
