@@ -10,237 +10,301 @@ import SwiftData
 
 struct TrashView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(filter: #Predicate<Book> { $0.deletedDate != nil },
-           sort: \Book.deletedDate,
-           order: .reverse)
-    private var deletedBooks: [Book]
-
+    @Query(filter: #Predicate<Item> { item in
+        item.deletedDate != nil
+    }, sort: \Item.deletedDate, order: .reverse) private var deletedItems: [Item]
+    
     @State private var isSelecting = false
-    @State private var selectedBooks = Set<PersistentIdentifier>()
+    @State private var selectedItems = Set<PersistentIdentifier>()
     @State private var showingDeleteConfirmation = false
     @State private var deleteAction: DeleteAction = .emptyTrash
-    @AppStorage("showFooters") private var showFooters: Bool = true
+    @AppStorage("dateFormat") private var dateFormat: DateFormat = .abbreviated
+    @AppStorage("sortOrder") private var sortOrder: SortOrder = .manual
     @HighlightColorStorage private var highlightColor
-
+    
+    // Tracks which deletion operation triggered the confirmation alert
     private enum DeleteAction {
         case emptyTrash
-        case singleBook(Book)
-        case selectedBooks
-
+        case singleItem(Item)
+        case selectedItems
+        
         var title: String {
             switch self {
             case .emptyTrash: return "Empty Trash?"
-            case .singleBook: return "Delete Book?"
-            case .selectedBooks: return "Delete Selected Books?"
+            case .singleItem: return "Delete Item?"
+            case .selectedItems: return "Delete Selected Items?"
             }
         }
-
-        func message(count: Int, selectedCount: Int) -> String {
+        
+        func message(deletedItemsCount: Int, selectedItemsCount: Int) -> String {
             switch self {
             case .emptyTrash:
-                return "This will permanently delete all \(count) book\(count == 1 ? "" : "s") in the trash. This action cannot be undone."
-            case .singleBook(let book):
-                return "This will permanently delete '\(book.displayTitle)'. This action cannot be undone."
-            case .selectedBooks:
-                return "This will permanently delete \(selectedCount) book\(selectedCount == 1 ? "" : "s"). This action cannot be undone."
+                return "This will permanently delete all \(deletedItemsCount) item\(deletedItemsCount == 1 ? "" : "s") in the trash. This action cannot be undone."
+            case .singleItem(let item):
+                return "This will permanently delete '\(item.trashDisplayName)'. This action cannot be undone."
+            case .selectedItems:
+                return "This will permanently delete \(selectedItemsCount) item\(selectedItemsCount == 1 ? "" : "s"). This action cannot be undone."
             }
         }
-
+        
         var buttonTitle: String {
             switch self {
             case .emptyTrash: return "Empty Trash"
-            case .singleBook, .selectedBooks: return "Delete"
+            case .singleItem: return "Delete"
+            case .selectedItems: return "Delete"
             }
         }
     }
-
+    
     var body: some View {
         ZStack {
             List {
                 Section {
-                    ForEach(deletedBooks) { book in
-                        bookRow(for: book)
-                    }
-                } header: {
-                    if !deletedBooks.isEmpty { Text("Books") }
-                } footer: {
-                    if showFooters && !deletedBooks.isEmpty && !isSelecting {
-                        Text("Swipe right on a book to restore it, or left to delete it.")
+                    ForEach(deletedItems) { item in
+                        itemRow(for: item)
                     }
                 }
             }
             .listStyle(.insetGrouped)
+            .animation(.easeInOut(duration: 0.2), value: isSelecting)
 
-            if deletedBooks.isEmpty {
+            if deletedItems.isEmpty {
                 EmptyStatePlaceholder(
                     systemImage: "trash",
                     title: "Trash is Empty",
-                    message: "Deleted books will appear here and be kept for 30 days"
+                    message: "Deleted items will appear here and be kept for 30 days"
                 )
             }
         }
-        .navigationTitle("Trash")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            trailingToolbarItem
+            PageNavigationToolbarItem(label: "Home Trash", systemImage: "trash", titleOnly: true)
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { withAnimation(.easeInOut(duration: 0.2)) { NavigationStateManager.shared.showingUniversalSearch = true } } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .tint(.primary)
+            }
             bottomToolbarItem
         }
         .background {
+            // AlertContainer applies primary tint to ensure alerts use standard system colors
             AlertContainer {
                 Color.clear
                     .alert(deleteAction.title, isPresented: $showingDeleteConfirmation) {
                         Button("Cancel", role: .cancel) { }
-                        Button(deleteAction.buttonTitle, role: .destructive) { performDelete() }
+                        Button(deleteAction.buttonTitle, role: .destructive) {
+                            performDelete()
+                        }
                     } message: {
-                        Text(deleteAction.message(count: deletedBooks.count, selectedCount: selectedBooks.count))
+                        Text(deleteAction.message(deletedItemsCount: deletedItems.count, selectedItemsCount: selectedItems.count))
                     }
             }
         }
     }
-
+    
     @ViewBuilder
-    private func bookRow(for book: Book) -> some View {
-        HStack {
+    private func itemRow(for item: Item) -> some View {
+        HStack(spacing: 0) {
             if isSelecting {
-                SelectionIndicator(isSelected: selectedBooks.contains(book.persistentModelID))
+                SelectionIndicator(isSelected: selectedItems.contains(item.persistentModelID), highlightColor: highlightColor)
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+                    .padding(.trailing, 12)
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(book.displayTitle).font(.headline)
-                if !book.author.isEmpty {
-                    Text(book.author).font(.subheadline).foregroundStyle(.secondary)
-                }
-                if let daysLeft = book.daysUntilPermanentDeletion {
-                    Text(daysLeft > 0 ? "Deletes in \(daysLeft) day\(daysLeft == 1 ? "" : "s")" : "Deletes today")
-                        .font(.caption).foregroundStyle(.red)
-                }
-            }
-            Spacer()
+
+            BudgetItemRowContent(
+                item: item,
+                dateFormat: dateFormat,
+                sortOrder: sortOrder,
+                nameOverride: item.trashDisplayName,
+                showsChevron: false,
+                trashDaysLeft: item.daysUntilPermanentDeletion
+            )
         }
         .contentShape(Rectangle())
-        .onTapGesture { if isSelecting { toggleSelection(for: book) } }
+        .onTapGesture {
+            if isSelecting {
+                toggleSelection(for: item)
+            }
+        }
         .contextMenu {
-            Button { restoreBook(book) } label: { Label("Restore", systemImage: "arrow.uturn.backward") }
+            Button {
+                restoreItem(item)
+            } label: {
+                Label("Restore", systemImage: "arrow.uturn.backward")
+            }
+            .tint(.primary)
+            
             Divider()
+            
             Button(role: .destructive) {
-                deleteAction = .singleBook(book)
-                showingDeleteConfirmation = true
-            } label: { Label("Delete Permanently", systemImage: "trash") }
-        }
-        .if(!isSelecting) { view in
-            view
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button { deleteAction = .singleBook(book); showingDeleteConfirmation = true } label: {
-                        Image(systemName: "trash")
-                    }.tint(.red)
-                }
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button { restoreBook(book) } label: {
-                        Image(systemName: "arrow.uturn.backward")
-                    }.tint(.blue)
-                }
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var trailingToolbarItem: some ToolbarContent {
-        if isSelecting {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { isSelecting = false; selectedBooks.removeAll() } label: {
-                    Label("Done", systemImage: "checkmark")
-                }.tint(.primary)
+                deleteAction = .singleItem(item)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { showingDeleteConfirmation = true }
+            } label: {
+                Label("Delete Permanently", systemImage: "trash")
             }
-        } else {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { isSelecting = true } label: {
-                    Label("Select", systemImage: "checkmark.circle")
-                }.tint(.primary).disabled(deletedBooks.isEmpty)
+            .tint(.red)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if !isSelecting {
+                Button {
+                    deleteAction = .singleItem(item)
+                    showingDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .tint(.red)
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            if !isSelecting {
+                Button {
+                    restoreItem(item)
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                }
+                .tint(.blue)
             }
         }
     }
+    
+    // MARK: - Toolbar Components
 
+    
     @ToolbarContentBuilder
     private var bottomToolbarItem: some ToolbarContent {
-        ToolbarItemGroup(placement: .bottomBar) {
-            if isSelecting {
-                Button { guard !selectedBooks.isEmpty else { return }; restoreSelectedBooks() } label: {
-                    Label("Restore", systemImage: "arrow.uturn.backward")
-                }.tint(.primary)
-                Spacer()
-                let selectAllText = selectedBooks.count == deletedBooks.count ? "Deselect All" : "Select All"
+        if isSelecting {
+            ToolbarItemGroup(placement: .bottomBar) {
                 Button {
-                    if selectedBooks.count == deletedBooks.count {
-                        selectedBooks.removeAll()
+                    withAnimation { isSelecting = false }
+                    selectedItems.removeAll()
+                } label: {
+                    Label("Done", systemImage: "checkmark")
+                }
+                .tint(.primary)
+
+                Button {
+                    restoreSelectedItems()
+                } label: {
+                    Label("Restore", systemImage: "arrow.uturn.backward")
+                }
+                .tint(.primary)
+                .disabled(selectedItems.isEmpty)
+
+                Spacer()
+
+                let selectAllText = selectedItems.isEmpty ? "Select All" : (selectedItems.count == deletedItems.count ? "Deselect All" : "Select All")
+                Button {
+                    guard !deletedItems.isEmpty else { return }
+                    if selectedItems.count == deletedItems.count {
+                        selectedItems.removeAll()
                     } else {
-                        selectedBooks = Set(deletedBooks.map { $0.persistentModelID })
+                        selectedItems = Set(deletedItems.map { $0.persistentModelID })
                     }
                 } label: {
-                    Label(selectAllText, systemImage: selectedBooks.count == deletedBooks.count ? "circle" : "checkmark.circle")
-                }.tint(.primary)
+                    Label(selectAllText, systemImage: selectedItems.count == deletedItems.count ? "checklist.unchecked" : "checklist.checked")
+                }
+                .tint(.primary)
+
                 Button(role: .destructive) {
-                    guard !selectedBooks.isEmpty else { return }
-                    deleteAction = .selectedBooks
+                    guard !selectedItems.isEmpty else { return }
+                    deleteAction = .selectedItems
                     showingDeleteConfirmation = true
-                } label: { Label("Delete", systemImage: "trash") }.tint(.red)
-            } else {
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+            }
+        } else {
+            ToolbarItemGroup(placement: .bottomBar) {
+                Button {
+                    withAnimation { isSelecting = true }
+                } label: {
+                    Label("Select", systemImage: "checklist")
+                }
+                .tint(.primary)
+                .disabled(deletedItems.isEmpty)
+
                 Spacer()
+
                 Button(role: .destructive) {
-                    guard !deletedBooks.isEmpty else { return }
+                    guard !deletedItems.isEmpty else { return }
                     deleteAction = .emptyTrash
                     showingDeleteConfirmation = true
-                } label: { Label("Empty Trash", systemImage: "trash") }.tint(.red)
+                } label: {
+                    Label("Empty Trash", systemImage: "trash")
+                }
+                .tint(.red)
             }
         }
     }
-
+    
+    // MARK: - Helper Methods
+    
     private func performDelete() {
         switch deleteAction {
-        case .emptyTrash: emptyTrash()
-        case .singleBook(let book): permanentlyDelete(book)
-        case .selectedBooks: permanentlyDeleteSelected()
+        case .emptyTrash:
+            emptyTrash()
+        case .singleItem(let item):
+            permanentlyDeleteItem(item)
+        case .selectedItems:
+            permanentlyDeleteSelectedItems()
         }
     }
-
-    private func toggleSelection(for book: Book) { selectedBooks.toggle(book.persistentModelID) }
-
-    private func restoreBook(_ book: Book) {
-        book.deletedDate = nil
-        modelContext.saveWithLogging("TrashView: Restored book")
+    
+    private func persistContext(label: String) {
+        modelContext.saveWithLogging("TrashView: \(label)")
     }
 
-    private func restoreSelectedBooks() {
-        for id in selectedBooks {
-            if let book = deletedBooks.first(where: { $0.persistentModelID == id }) {
-                book.deletedDate = nil
+    private func toggleSelection(for item: Item) {
+        selectedItems.toggle(item.persistentModelID)
+    }
+    
+    private func restoreItem(_ item: Item) {
+        item.deletedDate = nil
+        persistContext(label: "Restored 1 item")
+    }
+    
+    private func restoreSelectedItems() {
+        let count = selectedItems.count
+        for id in selectedItems {
+            if let item = deletedItems.first(where: { $0.persistentModelID == id }) {
+                item.deletedDate = nil
             }
         }
-        modelContext.saveWithLogging("TrashView: Restored selected books")
-        selectedBooks.removeAll()
+        persistContext(label: "Restored \(count) item(s)")
+        selectedItems.removeAll()
         isSelecting = false
     }
-
-    private func permanentlyDelete(_ book: Book) {
-        modelContext.delete(book)
-        modelContext.saveWithLogging("TrashView: Permanently deleted 1 book")
+    
+    private func permanentlyDeleteItem(_ item: Item) {
+        modelContext.delete(item)
+        persistContext(label: "Permanently deleted 1 item")
     }
-
-    private func permanentlyDeleteSelected() {
-        for id in selectedBooks {
-            if let book = deletedBooks.first(where: { $0.persistentModelID == id }) {
-                modelContext.delete(book)
+    
+    private func permanentlyDeleteSelectedItems() {
+        let count = selectedItems.count
+        for id in selectedItems {
+            if let item = deletedItems.first(where: { $0.persistentModelID == id }) {
+                modelContext.delete(item)
             }
         }
-        modelContext.saveWithLogging("TrashView: Permanently deleted \(selectedBooks.count) book(s)")
-        selectedBooks.removeAll()
+        persistContext(label: "Permanently deleted \(count) item(s)")
+        selectedItems.removeAll()
         isSelecting = false
     }
-
+    
     private func emptyTrash() {
-        for book in deletedBooks { modelContext.delete(book) }
-        modelContext.saveWithLogging("TrashView: Emptied trash")
+        let count = deletedItems.count
+        for item in deletedItems {
+            modelContext.delete(item)
+        }
+        persistContext(label: "Emptied trash (\(count) item(s))")
     }
 }
 
 #Preview {
     TrashView()
-        .modelContainer(for: Book.self, inMemory: true)
+        .modelContainer(for: Item.self, inMemory: true)
 }

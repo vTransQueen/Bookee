@@ -31,14 +31,30 @@ extension ModelContext {
     }
 }
 
-// MARK: - Color Hex
+// MARK: - Color Hex & Component Storage
 
-/// Extends Color with utilities for converting to/from hex strings for persistence in AppStorage.
-/// Handles color space conversion and provides fallback values for edge cases.
+/// Extends Color with utilities for converting to/from hex strings and full-precision
+/// component strings for persistence in AppStorage.
 extension Color {
+    /// Encodes a Color as a semicolon-separated "r;g;b;a" component string at full Double
+    /// precision. Components are extracted via UIColor in the default sRGB color space.
+    /// Returns nil if UIColor cannot extract components.
+    func toComponentString() -> String? {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
+        return "\(r);\(g);\(b);\(a)"
+    }
+
+    /// Initializes a Color from a semicolon-separated "r;g;b;a" component string
+    /// produced by toComponentString(). Returns nil if the string is malformed.
+    init?(componentString: String) {
+        let parts = componentString.split(separator: ";").compactMap { Double($0) }
+        guard parts.count == 4 else { return nil }
+        self.init(red: parts[0], green: parts[1], blue: parts[2], opacity: parts[3])
+    }
+
     /// Initializes a Color from a hex string (e.g., "FF5733").
     /// The hex string should contain 6 characters representing RGB values.
-    /// Uses precise conversion with proper rounding to maximum precision.
     init(hex: String) {
         let scanner = Scanner(string: hex)
         var rgbValue: UInt64 = 0
@@ -48,10 +64,9 @@ extension Color {
         let gInt = Int((rgbValue & 0x00FF00) >> 8)
         let bInt = Int(rgbValue & 0x0000FF)
 
-        let divisor = 255.0
-        let r = (Double(rInt) / divisor * 1_000_000).rounded() / 1_000_000
-        let g = (Double(gInt) / divisor * 1_000_000).rounded() / 1_000_000
-        let b = (Double(bInt) / divisor * 1_000_000).rounded() / 1_000_000
+        let r = Double(rInt) / 255.0
+        let g = Double(gInt) / 255.0
+        let b = Double(bInt) / 255.0
 
         self.init(red: r, green: g, blue: b)
     }

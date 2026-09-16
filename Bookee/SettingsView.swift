@@ -9,106 +9,115 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @AppStorage("selectedCurrency") private var selectedCurrency: Currency = .usd
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-    @AppStorage("userName") private var userName: String = ""
+    @AppStorage("dateFormat") private var dateFormat: DateFormat = .abbreviated
+    @AppStorage("sortOrder") private var sortOrder: SortOrder = .manual
     @HighlightColorStorage private var highlightColor
-    @AppStorage("showFooters") private var showFooters: Bool = true
-
-    @State private var selectedColor: Color = .clear
-    @State private var hasLoadedColor = false
-    @FocusState private var isUserNameFocused: Bool
-
+    
+    // MARK: - View Body
+    
     var body: some View {
         Form {
             Section {
-                nameField
-                Toggle(isOn: $showFooters) { Text("Footer Explanations") }
+                currencyPicker
+                sortOrderPicker
+                dateFormatPicker
             } header: {
-                Text("General")
-            } footer: {
-                if showFooters {
-                    Text("Your 'Name' will appear in the greeting on the main page.")
-                }
+                Text("App Details")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .textCase(nil)
             }
-
+            
             Section {
                 highlightColorButton
                 appearancePicker
-            } header: {
-                Text("Appearance")
             }
-
+            
             Section {
-                trashNavigationLink
                 backupsNavigationLink
-            } header: {
-                Text("Storage")
+                trashNavigationLink
             }
-
+            
             Section {
                 versionRow
-            } header: {
-                Text("About")
             }
         }
-        .navigationTitle("Settings")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var nameField: some View {
-        HStack {
-            Text("Name")
-            Spacer()
-            CursorAtEndTextField_SwiftUI(text: $userName, placeholder: "Optional", onCommit: {
-                isUserNameFocused = false
-            })
-            .multilineTextAlignment(.trailing)
-            .focused($isUserNameFocused)
-            .trimWhitespaceOnEditingEnd($userName, isFocused: $isUserNameFocused)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { if !isUserNameFocused { isUserNameFocused = true } }
-    }
-
-    private var appearancePicker: some View {
-        Picker(selection: $appearanceMode) {
-            ForEach(AppearanceMode.allCases, id: \.self) { mode in
-                Text(mode.rawValue).tag(mode)
+        .toolbar {
+            PageNavigationToolbarItem(label: "Settings", systemImage: "gear", titleOnly: true)
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { withAnimation(.easeInOut(duration: 0.2)) { NavigationStateManager.shared.showingUniversalSearch = true } } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .tint(.primary)
             }
-        } label: {
-            Text("Appearance")
+        }
+    }
+
+    // MARK: - View Components
+    
+    private var sortOrderPicker: some View {
+        Picker("Sort Order", selection: $sortOrder) {
+            ForEach(SortOrder.allCases, id: \.self) { order in
+                Text(order.rawValue).tag(order)
+            }
         }
         .pickerStyle(.menu)
     }
 
+    private var currencyPicker: some View {
+        Picker("Currency", selection: $selectedCurrency) {
+            ForEach(Currency.allCases, id: \.self) { currency in
+                Text("\(currency.symbol) \(currency.code)").tag(currency)
+            }
+        }
+        .pickerStyle(.menu)
+    }
+    
+    private var dateFormatPicker: some View {
+        Picker("Date Format", selection: $dateFormat) {
+            ForEach(DateFormat.allCases, id: \.self) { format in
+                Text(format.rawValue).tag(format)
+            }
+        }
+        .pickerStyle(.menu)
+    }
+    
+    private var appearancePicker: some View {
+        Picker("Appearance", selection: $appearanceMode) {
+            ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                Text(mode.rawValue).tag(mode)
+            }
+        }
+        .pickerStyle(.menu)
+    }
+    
     private var highlightColorButton: some View {
-        ColorPicker(selection: $selectedColor, supportsOpacity: false) { Text("Tint") }
-            .onAppear {
-                guard !hasLoadedColor else { return }
-                hasLoadedColor = true
-                selectedColor = highlightColor
-            }
-            .onChange(of: selectedColor) { _, newValue in
-                guard hasLoadedColor else { return }
-                let hexValue = newValue.toHex()
-                guard hexValue != $highlightColor.wrappedValue else { return }
-                $highlightColor.wrappedValue = hexValue
-            }
+        ColorPicker("Tint", selection: $highlightColor, supportsOpacity: false)
     }
-
+    
     private var trashNavigationLink: some View {
-        NavigationLink { TrashView() } label: { Text("Trash") }
+        NavigationLink("Home Trash", value: NavDestination.trash)
     }
-
+    
     private var backupsNavigationLink: some View {
-        NavigationLink { BackupsView() } label: { Text("Backups") }
+        NavigationLink("Backups", value: NavDestination.backups)
     }
-
+    
     private var versionRow: some View {
         HStack {
             Text("Version")
             Spacer()
-            Text("1.0.0").foregroundStyle(.secondary)
+            Text("1.0.0")
+                .foregroundStyle(.secondary)
         }
     }
+
 }
+
+
